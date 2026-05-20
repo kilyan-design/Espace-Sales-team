@@ -102,6 +102,7 @@
                         <option value="Admin" selected>Admin Supérieur</option>
                         <option value="Closer">Closer (Ventes)</option>
                         <option value="Setter">Setter (Appels)</option>
+                        <option value="Closer/Setter">Closer/Setter</option>
                     </select>
                 </div>
                 <button class="relative text-slate-400 hover:text-white transition-colors">
@@ -123,6 +124,12 @@
     <!-- JAVASCRIPT APPLICATION LOGIC -->
     <script>
         const MOCK_DATA = {
+            team: [
+                { id: 1, name: "Hugo A.", role: "Admin", email: "hugo@delthom.fr", comm: "" },
+                { id: 2, name: "Kilyan D.", role: "Admin", email: "kilyan@delthom.fr", comm: "" },
+                { id: 3, name: "Lilou", role: "Setter", email: "lilou@delthom.fr", comm: "15%" },
+                { id: 4, name: "Romain", role: "Closer", email: "romain@delthom.fr", comm: "20%" }
+            ],
             prospects: [
                 { id: 1, name: "Oudot", company: "Point Fort Fichet", sector: "Artisanat", city: "Lyon", phone: "+33 6 32 21 56 91", email: "contact@oudot.fr", status: "Nouveau lead", initial: "O", assignee: 3, score: 85, source: "Google Maps", lastContact: "Hier", value: 1500, onoff: "Client frustré par ses campagnes Ads actuelles. Cherche une solution locale.", seo: "Score Local: 34/100. Fiche GMB non optimisée, site web obsolète." },
                 { id: 2, name: "Dupont", company: "Clim Instal Plus", sector: "Climatisation", city: "Paris", phone: "+33 6 52 51 00 33", email: "dir@clim.com", status: "Qualifié", initial: "C", assignee: 4, score: 92, source: "Inbound SEO", lastContact: "Aujourd'hui", value: 5000, onoff: "Le devis lui convient, on signe l'acompte lundi.", seo: "Score Local: 72/100. Présent sur 3 mots-clés, mais conversion faible." },
@@ -140,21 +147,15 @@
             ]
         };
 
-        const TEAM_DATA = [
-            { id: 1, name: "Hugo A.", role: "Admin", badgeClasses: "bg-blue-500/10 text-blue-400 border-blue-500/20" },
-            { id: 2, name: "Kilyan D.", role: "Admin", badgeClasses: "bg-cyan-500/10 text-cyan-400 border-cyan-500/20" },
-            { id: 3, name: "Lilou", role: "Setter", badgeClasses: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" },
-            { id: 4, name: "Romain", role: "Closer", badgeClasses: "bg-violet-500/10 text-violet-400 border-violet-500/20" }
-        ];
-
         const state = {
-            activeTab: 'Dashboard',
-            userRole: 'Admin', // Admin, Closer, Setter
+            activeTab: 'Paramètres',
+            userRole: 'Admin', // Admin, Closer, Setter, Closer/Setter
+            team: [...MOCK_DATA.team],
             prospects: [...MOCK_DATA.prospects],
             invoices: [...MOCK_DATA.invoices],
             events: [...MOCK_DATA.events],
             callingStats: { calls: 0, rdv: 0, streak: 0, bestStreak: 0 }, 
-            crm: { viewMode: 'kanban', showFilters: false, filters: { sector: '', score: '', value: '' } },
+            crm: { viewMode: 'kanban', showFilters: false, filters: { sector: '', score: '', value: '', assignee: '', lastContact: '' } },
             game: { view: 'home', activeIntro: null, currentStep: 0, choiceMade: null, toast: {show:false, msg:'', icon:''} }
         };
 
@@ -185,6 +186,14 @@
 
             closeModal() {
                 setHTML('modal-container', '');
+            },
+            
+            getRoleBadge(role) {
+                if (role === 'Admin') return "bg-blue-500/10 text-blue-400 border-blue-500/20";
+                if (role === 'Setter') return "bg-emerald-500/10 text-emerald-400 border-emerald-500/20";
+                if (role === 'Closer') return "bg-violet-500/10 text-violet-400 border-violet-500/20";
+                if (role === 'Closer/Setter') return "bg-fuchsia-500/10 text-fuchsia-400 border-fuchsia-500/20";
+                return "bg-slate-800 text-slate-500 border-slate-700";
             },
 
             renderSidebar() {
@@ -251,6 +260,13 @@
                 } else if (state.userRole === 'Closer') {
                     stats = [
                         { title: "RDV Réalisés (Mois)", val: "28", trend: "up", tVal: "+4", icon: 'calendar', col: "blue" },
+                        { title: "Taux de Transfo", val: "32%", trend: "up", tVal: "5%", icon: 'crosshair', col: "cyan" },
+                        { title: "Closings (Ce Mois)", val: "8", trend: "up", tVal: "+2", icon: 'check-circle-2', col: "indigo" },
+                        { title: "CA Réalisé", val: `${closedCA.toLocaleString()} €`, trend: "up", tVal: "12%", icon: 'receipt', col: "emerald" }
+                    ];
+                } else if (state.userRole === 'Closer/Setter') {
+                    stats = [
+                        { title: "Appels & RDV", val: "142 / 28", trend: "up", tVal: "+12", icon: 'phone', col: "blue" },
                         { title: "Taux de Transfo", val: "32%", trend: "up", tVal: "5%", icon: 'crosshair', col: "cyan" },
                         { title: "Closings (Ce Mois)", val: "8", trend: "up", tVal: "+2", icon: 'check-circle-2', col: "indigo" },
                         { title: "CA Réalisé", val: `${closedCA.toLocaleString()} €`, trend: "up", tVal: "12%", icon: 'receipt', col: "emerald" }
@@ -342,6 +358,8 @@
             // --- 2. CRM ---
             setCRMViewMode(mode) { state.crm.viewMode = mode; this.renderView(); },
             toggleCRMFilters() { state.crm.showFilters = !state.crm.showFilters; this.renderView(); },
+            handleFilterChange(key, val) { state.crm.filters[key] = val; this.renderView(); },
+            clearFilters() { state.crm.filters = { sector: '', score: '', value: '', assignee: '', lastContact: '' }; this.renderView(); },
 
             openProspectModal(id) {
                 const p = state.prospects.find(x => x.id === id);
@@ -355,7 +373,7 @@
                                 <div class="w-12 h-12 rounded-xl bg-slate-800 text-cyan-400 flex items-center justify-center font-black text-xl border border-slate-700">${p.initial}</div>
                                 <div>
                                     <h2 class="font-black text-white text-lg tracking-tight">${p.company}</h2>
-                                    <span class="text-[10px] font-bold text-cyan-500 uppercase tracking-widest">${p.status}</span>
+                                    <span class="text-[10px] font-bold text-cyan-500 uppercase tracking-widest">${p.status} · Score ${p.score}</span>
                                 </div>
                             </div>
                             <button onclick="window.app.closeModal()" class="text-slate-400 hover:text-white p-2 bg-slate-800 rounded-full"><i data-lucide="x" class="w-5 h-5"></i></button>
@@ -366,17 +384,17 @@
                                     <p class="text-[10px] font-bold text-slate-400 uppercase mb-1">Contact Principal</p>
                                     <p class="font-bold text-white">${p.name}</p>
                                 </div>
-                                <div class="bg-slate-800/50 p-4 rounded-xl border border-slate-700 flex items-center space-x-3">
-                                    <div class="p-2 bg-slate-700 rounded-lg"><i data-lucide="map-pin" class="w-4 h-4 text-emerald-400"></i></div>
-                                    <div><p class="text-[10px] font-bold text-slate-400 uppercase">Ville & Source</p><p class="font-bold text-white text-sm">${p.city} · ${p.source}</p></div>
+                                <div class="bg-slate-800/50 p-4 rounded-xl border border-slate-700">
+                                    <p class="text-[10px] font-bold text-slate-400 uppercase mb-1">Valeur Estimée</p>
+                                    <p class="font-black text-cyan-400">${p.value.toLocaleString()} €</p>
                                 </div>
                                 <div class="bg-slate-800/50 p-4 rounded-xl border border-slate-700 flex items-center space-x-3">
                                     <div class="p-2 bg-slate-700 rounded-lg"><i data-lucide="phone" class="w-4 h-4 text-cyan-400"></i></div>
                                     <div><p class="text-[10px] font-bold text-slate-400 uppercase">Téléphone</p><p class="font-bold text-white text-sm">${p.phone}</p></div>
                                 </div>
                                 <div class="bg-slate-800/50 p-4 rounded-xl border border-slate-700 flex items-center space-x-3">
-                                    <div class="p-2 bg-slate-700 rounded-lg"><i data-lucide="clock" class="w-4 h-4 text-blue-400"></i></div>
-                                    <div><p class="text-[10px] font-bold text-slate-400 uppercase">Dernier Contact</p><p class="font-bold text-white text-sm">${p.lastContact}</p></div>
+                                    <div class="p-2 bg-slate-700 rounded-lg"><i data-lucide="mail" class="w-4 h-4 text-blue-400"></i></div>
+                                    <div><p class="text-[10px] font-bold text-slate-400 uppercase">Email</p><p class="font-bold text-white text-sm truncate w-32" title="${p.email}">${p.email}</p></div>
                                 </div>
                             </div>
                             
@@ -414,12 +432,58 @@
                     { id: 'Closer', label: 'Closés (Gagnés)', color: 'border-emerald-500/30 bg-slate-900/40', text: 'text-emerald-400' }
                 ];
 
+                const uniqueSectors = [...new Set(state.prospects.map(p => p.sector))].filter(Boolean);
+
+                let filtersHTML = '';
+                if (state.crm.showFilters) {
+                    filtersHTML = `
+                    <div class="bg-slate-900/80 backdrop-blur-md p-4 rounded-xl border border-slate-700 shadow-xl flex flex-wrap gap-4 items-end mb-4 animate-in slide-in-from-top-2">
+                        <div class="flex-1 min-w-[150px]">
+                            <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1">Corps de métier</label>
+                            <select onchange="window.app.handleFilterChange('sector', this.value)" class="w-full p-2.5 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white font-medium outline-none focus:border-cyan-500">
+                                <option value="">Tous les secteurs</option>
+                                ${uniqueSectors.map(s => `<option value="${s}" ${state.crm.filters.sector === s ? 'selected' : ''}>${s}</option>`).join('')}
+                            </select>
+                        </div>
+                        <div class="flex-1 min-w-[150px]">
+                            <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1">Assigné à</label>
+                            <select onchange="window.app.handleFilterChange('assignee', this.value)" class="w-full p-2.5 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white font-medium outline-none focus:border-cyan-500">
+                                <option value="">Tous les agents</option>
+                                ${state.team.map(t => `<option value="${t.id}" ${state.crm.filters.assignee == t.id ? 'selected' : ''}>${t.name} (${t.role})</option>`).join('')}
+                            </select>
+                        </div>
+                        <div class="flex-1 min-w-[150px]">
+                            <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1 flex items-center"><i data-lucide="shield" class="w-3 h-3 mr-1 text-emerald-400"></i> Score IA</label>
+                            <select onchange="window.app.handleFilterChange('score', this.value)" class="w-full p-2.5 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white font-medium outline-none focus:border-cyan-500">
+                                <option value="">Tous les scores</option>
+                                <option value="hot" ${state.crm.filters.score === 'hot' ? 'selected' : ''}>🔥 Chaud (&gt;80)</option>
+                                <option value="warm" ${state.crm.filters.score === 'warm' ? 'selected' : ''}>🌤️ Tiède (50-80)</option>
+                                <option value="cold" ${state.crm.filters.score === 'cold' ? 'selected' : ''}>❄️ Froid (&lt;50)</option>
+                            </select>
+                        </div>
+                        <button onclick="window.app.clearFilters()" class="px-4 py-2.5 text-xs font-bold text-slate-400 hover:text-white transition-colors uppercase tracking-wider">Réinitialiser</button>
+                    </div>`;
+                }
+
+                // Filtrage
+                const filteredProspects = state.prospects.filter(p => {
+                    const f = state.crm.filters;
+                    if (f.sector && p.sector !== f.sector) return false;
+                    if (f.assignee && p.assignee !== parseInt(f.assignee)) return false;
+                    if (f.score) {
+                        if (f.score === 'hot' && p.score < 80) return false;
+                        if (f.score === 'warm' && (p.score >= 80 || p.score < 50)) return false;
+                        if (f.score === 'cold' && p.score >= 50) return false;
+                    }
+                    return true;
+                });
+
                 let contentHTML = '';
                 if (state.crm.viewMode === 'kanban') {
                     contentHTML = `
                     <div class="flex-1 flex space-x-6 overflow-x-auto pb-4 custom-scrollbar hud-enter">
                         ${columns.map(col => {
-                            const pList = state.prospects.filter(p => p.status === col.id);
+                            const pList = filteredProspects.filter(p => p.status === col.id);
                             const val = pList.reduce((s, c) => s + c.value, 0);
                             return `
                             <div class="flex-shrink-0 w-80 bg-slate-900/40 backdrop-blur-md rounded-2xl border ${col.color} shadow-lg flex flex-col h-full overflow-hidden" ondragover="window.app.allowDrop(event)" ondrop="window.app.drop(event, '${col.id}')">
@@ -432,9 +496,10 @@
                                 </div>
                                 <div class="flex-1 overflow-y-auto p-3 space-y-3 custom-scrollbar">
                                     ${pList.map(p => {
-                                        const assignee = TEAM_DATA.find(t => t.id === p.assignee);
+                                        const assignee = state.team.find(t => t.id === p.assignee);
+                                        const badgeClasses = this.getRoleBadge(assignee ? assignee.role : '');
                                         const assigneeBadge = assignee ? 
-                                            `<span class="${assignee.badgeClasses} px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-widest flex items-center shrink-0 border"><i data-lucide="user" class="w-3 h-3 mr-1"></i>${assignee.name}</span>` : 
+                                            `<span class="${badgeClasses} px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-widest flex items-center shrink-0 border"><i data-lucide="user" class="w-3 h-3 mr-1"></i>${assignee.name}</span>` : 
                                             `<span class="bg-slate-800 text-slate-500 border-slate-700 px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-widest flex items-center shrink-0 border"><i data-lucide="user" class="w-3 h-3 mr-1"></i>Non assigné</span>`;
                                         
                                         return `
@@ -450,7 +515,7 @@
                                         </div>
                                         <div class="space-y-1.5 mb-3">
                                             <p class="text-xs font-medium text-slate-300 flex items-center"><i data-lucide="phone" class="w-3 h-3 mr-2 text-slate-500"></i> ${p.phone}</p>
-                                            <p class="text-xs font-medium text-slate-300 flex items-center truncate"><i data-lucide="clock" class="w-3 h-3 mr-2 text-slate-500"></i> ${p.lastContact} · ${p.source}</p>
+                                            <p class="text-xs font-medium text-slate-300 flex items-center truncate"><i data-lucide="clock" class="w-3 h-3 mr-2 text-slate-500"></i> ${p.lastContact}</p>
                                         </div>
                                         <div class="flex items-center justify-between mt-3 pt-3 border-t border-slate-700/50">
                                             ${assigneeBadge}
@@ -474,10 +539,11 @@
                             <div class="text-right">Potentiel CA</div>
                         </div>
                         <div class="flex-1 overflow-y-auto divide-y divide-slate-800/50 bg-slate-900/30 custom-scrollbar">
-                            ${state.prospects.map(p => {
-                                const assignee = TEAM_DATA.find(t => t.id === p.assignee);
+                            ${filteredProspects.map(p => {
+                                const assignee = state.team.find(t => t.id === p.assignee);
+                                const badgeClasses = this.getRoleBadge(assignee ? assignee.role : '');
                                 const assigneeBadge = assignee ? 
-                                    `<span class="${assignee.badgeClasses} px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-widest inline-flex items-center shrink-0 border"><i data-lucide="user" class="w-3 h-3 mr-1"></i>${assignee.name}</span>` : 
+                                    `<span class="${badgeClasses} px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-widest inline-flex items-center shrink-0 border"><i data-lucide="user" class="w-3 h-3 mr-1"></i>${assignee.name}</span>` : 
                                     `<span class="bg-slate-800 text-slate-500 border border-slate-700 px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-widest inline-flex items-center shrink-0"><i data-lucide="user" class="w-3 h-3 mr-1"></i>Non assigné</span>`;
                                 
                                 return `
@@ -511,6 +577,7 @@
                             </h1>
                         </div>
                         <div class="flex space-x-4 items-center">
+                            <button onclick="window.app.toggleCRMFilters()" class="px-4 py-2.5 rounded-xl font-bold text-xs tracking-wider uppercase border ${state.crm.showFilters ? 'bg-cyan-500/10 text-cyan-400 border-cyan-500/30' : 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700'} flex items-center"><i data-lucide="filter" class="w-4 h-4 mr-2"></i> Filtres</button>
                             <div class="bg-slate-800 p-1 rounded-xl flex space-x-1 border border-slate-700">
                                 <button onclick="window.app.setCRMViewMode('kanban')" class="p-2 rounded-lg transition-colors ${state.crm.viewMode==='kanban'?'bg-slate-700 text-cyan-400':'text-slate-500 hover:text-slate-300'}"><i data-lucide="kanban" class="w-5 h-5"></i></button>
                                 <button onclick="window.app.setCRMViewMode('list')" class="p-2 rounded-lg transition-colors ${state.crm.viewMode==='list'?'bg-slate-700 text-cyan-400':'text-slate-500 hover:text-slate-300'}"><i data-lucide="list" class="w-5 h-5"></i></button>
@@ -518,6 +585,7 @@
                             <button class="px-6 py-2.5 bg-blue-600 text-white rounded-xl font-bold text-xs tracking-wider uppercase shadow-[0_0_15px_rgba(37,99,235,0.4)] flex items-center"><i data-lucide="plus" class="w-4 h-4 mr-2"></i> Client</button>
                         </div>
                     </div>
+                    ${filtersHTML}
                     ${contentHTML}
                 </div>`;
             },
@@ -714,14 +782,75 @@
             },
 
             // --- 7. PARAMÈTRES (ÉQUIPE & OFFRES) ---
+            updateTeamRole(id, newRole) {
+                const member = state.team.find(t => t.id === id);
+                if (member) {
+                    member.role = newRole;
+                    if (newRole === 'Setter') member.comm = '15%';
+                    else if (newRole === 'Closer') member.comm = '20%';
+                    else if (newRole === 'Closer/Setter') member.comm = '35%';
+                    else if (newRole === 'Admin') member.comm = '';
+                }
+                this.renderView();
+            },
+            
+            updateTeamComm(id, newComm) {
+                const member = state.team.find(t => t.id === id);
+                if (member) {
+                    member.comm = newComm;
+                }
+                this.renderView();
+            },
+
+            addTeamMember() {
+                const emailInput = document.getElementById('new-member-email');
+                const roleInput = document.getElementById('new-member-role');
+                if (!emailInput || !emailInput.value) return;
+
+                let comm = '';
+                if (roleInput.value === 'Setter') comm = '15%';
+                else if (roleInput.value === 'Closer') comm = '20%';
+                else if (roleInput.value === 'Closer/Setter') comm = '35%';
+
+                state.team.push({
+                    id: Date.now(),
+                    name: emailInput.value.split('@')[0], 
+                    role: roleInput.value,
+                    email: emailInput.value,
+                    comm: comm
+                });
+                this.renderView();
+            },
+
             renderSettings(container) {
                 const isAdmin = state.userRole === 'Admin';
-                let teamList = [
-                    { name: "Hugo Aque", role: "Admin", email: "hugo@delthom.fr", comm: "" },
-                    { name: "Kilyan Delthom", role: "Admin", email: "kilyan@delthom.fr", comm: "" },
-                    { name: "Romain", role: "Closer", email: "romain@delthom.fr", comm: "15%" },
-                    { name: "Lilou", role: "Setter", email: "lilou@delthom.fr", comm: "10%" }
-                ];
+                const roles = ['Admin', 'Setter', 'Closer', 'Closer/Setter'];
+
+                let teamHtml = state.team.map(t => `
+                    <div class="flex items-center justify-between p-4 bg-slate-800/50 rounded-xl border border-slate-700">
+                        <div>
+                            <p class="text-white font-bold flex items-center">
+                                ${t.name}
+                                ${isAdmin ? `
+                                    <select onchange="window.app.updateTeamRole(${t.id}, this.value)" class="ml-2 px-2 py-0.5 bg-slate-700 border border-slate-600 text-xs rounded text-cyan-400 outline-none cursor-pointer font-black">
+                                        ${roles.map(r => `<option value="${r}" ${t.role === r ? 'selected' : ''}>${r}</option>`).join('')}
+                                    </select>
+                                ` : `
+                                    <span class="ml-2 px-2 py-0.5 bg-slate-700 border border-slate-600 text-xs rounded text-cyan-400 font-black">${t.role}</span>
+                                `}
+                            </p>
+                            <p class="text-slate-400 text-xs mt-1">${t.email}</p>
+                        </div>
+                        <div class="text-right">
+                            <label class="text-[10px] uppercase text-slate-500 block mb-1 font-bold">Commission</label>
+                            ${isAdmin ? `
+                                <input type="text" onchange="window.app.updateTeamComm(${t.id}, this.value)" value="${t.comm}" class="w-16 bg-slate-900 border border-slate-700 text-center text-white text-sm font-bold py-1 rounded outline-none focus:border-cyan-500">
+                            ` : `
+                                <span class="text-white text-sm font-bold">${t.comm || '—'}</span>
+                            `}
+                        </div>
+                    </div>
+                `).join('');
 
                 let html = `
                 <div class="space-y-8 pb-20">
@@ -732,25 +861,19 @@
                     <div class="bg-slate-900/60 p-6 rounded-2xl border border-slate-800 shadow-2xl hud-enter" style="animation-delay: 0.1s">
                         <h2 class="text-xl text-white font-bold mb-6 border-b border-slate-800 pb-3 flex items-center"><i data-lucide="users" class="w-5 h-5 mr-2 text-cyan-400"></i> Équipe & Accès</h2>
                         <div class="space-y-4">
-                            ${teamList.map(t => `
-                                <div class="flex items-center justify-between p-4 bg-slate-800/50 rounded-xl border border-slate-700">
-                                    <div>
-                                        <p class="text-white font-bold">${t.name} <span class="ml-2 px-2 py-0.5 bg-slate-700 border border-slate-600 text-xs rounded text-slate-300">${t.role}</span></p>
-                                        <p class="text-slate-400 text-xs mt-1">${t.email}</p>
-                                    </div>
-                                    ${isAdmin && t.comm ? `<div class="text-right">
-                                        <label class="text-[10px] uppercase text-slate-500 block mb-1 font-bold">Commission</label>
-                                        <input type="text" value="${t.comm}" class="w-16 bg-slate-900 border border-slate-700 text-center text-white text-sm font-bold py-1 rounded outline-none focus:border-cyan-500">
-                                    </div>` : ''}
-                                </div>
-                            `).join('')}
+                            ${teamHtml}
                         </div>
                         
                         ${isAdmin ? `
                         <div class="mt-6 pt-6 border-t border-slate-800 flex gap-4">
-                            <input type="email" placeholder="Adresse email du nouveau membre" class="flex-1 bg-slate-800 border border-slate-700 rounded-xl px-4 text-white text-sm focus:outline-none focus:border-cyan-500">
-                            <select class="bg-slate-800 border border-slate-700 rounded-xl px-4 text-white text-sm outline-none"><option>Closer</option><option>Setter</option><option>Admin</option></select>
-                            <button class="px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl text-sm transition-colors">Inviter</button>
+                            <input type="email" id="new-member-email" placeholder="Adresse email du nouveau membre" class="flex-1 bg-slate-800 border border-slate-700 rounded-xl px-4 text-white text-sm focus:outline-none focus:border-cyan-500">
+                            <select id="new-member-role" class="bg-slate-800 border border-slate-700 rounded-xl px-4 text-white text-sm outline-none font-bold">
+                                <option value="Closer">Closer</option>
+                                <option value="Setter">Setter</option>
+                                <option value="Closer/Setter">Closer/Setter</option>
+                                <option value="Admin">Admin</option>
+                            </select>
+                            <button onclick="window.app.addTeamMember()" class="px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl text-sm transition-colors">Inviter</button>
                         </div>
                         ` : `<p class="mt-6 text-sm text-slate-500 font-bold italic border-t border-slate-800 pt-4">Seuls les administrateurs peuvent ajouter des membres et modifier les commissions.</p>`}
                     </div>
