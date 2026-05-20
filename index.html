@@ -138,8 +138,8 @@
                 { id: 5, name: "Luc V.", company: "Vezzoni Immo", sector: "Immobilier", city: "Bordeaux", phone: "+33 6 16 96 52 54", email: "vezzoni.ml@gmail.com", status: "Closer", initial: "V", assignee: 2, score: 95, source: "Recommandation", lastContact: "À l'instant", value: 20000, onoff: "Gros projet Intranet + Site, le contrat est validé verbalement.", seo: "Score Local: 88/100. Leader sur son marché, veut automatiser ses process." },
             ],
             invoices: [
-                { id: "DEV-2026-042", type: "Devis", client: "AIRFROIDISER", amount: 1800, status: "Envoyé", date: "18 Mai 2026", details: "Site vitrine one-page" },
-                { id: "FAC-2026-001", type: "Facture", client: "Vezzoni Immo", amount: 20000, status: "Payée", date: "10 Mai 2026", details: "Acompte 50% Création Ecosystème" }
+                { id: "DEV-2026-042", type: "Devis", client: "AIRFROIDISER", email: "jean@airfroidiser.fr", amount: 1800, status: "Envoyé", date: "18 Mai 2026", details: "Site Vitrine Premium" },
+                { id: "FAC-2026-001", type: "Facture", client: "Vezzoni Immo", email: "vezzoni.ml@gmail.com", amount: 20000, status: "Payée", date: "10 Mai 2026", details: "Infrastructure Web Complète" }
             ],
             events: [
                 { id: 1, title: "Démo Produit - Clim Instal Plus", date: "Aujourd'hui", time: "14:30", prospectId: 2 },
@@ -148,7 +148,7 @@
         };
 
         const state = {
-            activeTab: 'Paramètres',
+            activeTab: 'Facturation',
             userRole: 'Admin', // Admin, Closer, Setter, Closer/Setter
             team: [...MOCK_DATA.team],
             prospects: [...MOCK_DATA.prospects],
@@ -315,7 +315,7 @@
                     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 hud-enter" style="animation-delay: 0.1s">
                         <div class="lg:col-span-2 bg-slate-900/60 backdrop-blur-2xl p-6 rounded-2xl border border-slate-800 shadow-2xl relative overflow-hidden">
                             <h3 class="text-sm font-bold tracking-widest text-white uppercase mb-6 flex items-center">
-                                <i data-lucide="bar-chart-2" class="w-4 h-4 mr-2 text-blue-500"></i> Pipeline des Ventes Récent
+                                <i data-lucide="line-chart" class="w-4 h-4 mr-2 text-blue-500"></i> Pipeline des Ventes
                             </h3>
                             <div class="h-56 w-full flex items-end justify-between px-2 relative">
                                 <div class="absolute inset-0 grid grid-rows-4 gap-0 pointer-events-none border-b border-slate-800">
@@ -326,7 +326,7 @@
                                 </div>
                                 ${[{h:30,d:'Lun'},{h:50,d:'Mar'},{h:40,d:'Mer'},{h:70,d:'Jeu'},{h:60,d:'Ven'},{h:90,d:'Sam'},{h:80,d:'Dim'}].map(bar => `
                                     <div class="relative group w-12 flex flex-col items-center justify-end h-full">
-                                        <div class="w-full bg-gradient-to-t from-blue-600 to-cyan-400 rounded-t-md opacity-80 transition-all shadow-[0_0_20px_rgba(56,189,248,0.3)]" style="height:${bar.h}%"></div>
+                                        <div class="w-full bg-gradient-to-t from-blue-600 to-cyan-400 rounded-t-md opacity-80 transition-all cursor-pointer shadow-[0_0_20px_rgba(56,189,248,0.3)]" style="height:${bar.h}%"></div>
                                         <span class="text-[10px] font-bold text-slate-500 mt-2 uppercase">${bar.d}</span>
                                     </div>
                                 `).join('')}
@@ -334,10 +334,10 @@
                         </div>
                         <div class="bg-slate-900/60 backdrop-blur-2xl p-6 rounded-2xl border border-slate-800 shadow-2xl">
                             <h3 class="text-sm font-bold tracking-widest text-white uppercase mb-4 flex items-center">
-                                <i data-lucide="bot" class="w-4 h-4 mr-2 text-cyan-500"></i> Activité IA & Workflows
+                                <i data-lucide="bot" class="w-4 h-4 mr-2 text-cyan-500"></i> Activité IA
                             </h3>
                             <div class="space-y-4">
-                                ${[{t:"Transcription appel", s:"Terminé", c:"text-emerald-400"},{t:"Séquence Nurturing", s:"Actif", c:"text-blue-400"}].map(log => `
+                                ${[{t:"Transcription appel", s:"Terminé", c:"text-emerald-400"},{t:"Import Leads", s:"Actif", c:"text-blue-400"}].map(log => `
                                     <div class="p-3 bg-slate-800/50 rounded-xl border border-slate-700/50">
                                         <div class="flex justify-between items-center mb-1">
                                             <span class="text-xs font-extrabold text-white">Jarvis Bot</span>
@@ -355,7 +355,7 @@
                 </div>`;
             },
 
-            // --- 2. CRM ---
+            // --- 2. CRM / PIPELINE ---
             setCRMViewMode(mode) { state.crm.viewMode = mode; this.renderView(); },
             toggleCRMFilters() { state.crm.showFilters = !state.crm.showFilters; this.renderView(); },
             handleFilterChange(key, val) { state.crm.filters[key] = val; this.renderView(); },
@@ -465,7 +465,6 @@
                     </div>`;
                 }
 
-                // Filtrage
                 const filteredProspects = state.prospects.filter(p => {
                     const f = state.crm.filters;
                     if (f.sector && p.sector !== f.sector) return false;
@@ -670,13 +669,77 @@
             },
 
             // --- 5. FACTURATION ---
-            transformToInvoice(docId) {
+            openCreateDocModal() {
+                const html = `
+                <div class="fixed inset-0 z-50 flex items-center justify-center bg-[#0B0F19]/80 backdrop-blur-sm fade-in" onclick="window.app.closeModal()">
+                    <div class="bg-slate-900 rounded-2xl shadow-2xl w-[500px] border border-slate-700 overflow-hidden hud-enter" onclick="event.stopPropagation()">
+                        <div class="px-6 py-4 border-b border-slate-800 flex justify-between items-center bg-slate-800/50">
+                            <h2 class="font-black text-white uppercase tracking-widest text-sm">Générer un Devis</h2>
+                            <button onclick="window.app.closeModal()" class="text-slate-500 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
+                        </div>
+                        <form onsubmit="window.app.submitCreateDoc(event)" class="p-6 space-y-6">
+                            <div>
+                                <label class="block text-[10px] font-bold text-slate-400 uppercase mb-2">Sélectionner Client depuis CRM</label>
+                                <select id="new-doc-client" required class="w-full p-3.5 bg-slate-800 border border-slate-700 rounded-xl text-sm font-medium outline-none focus:border-cyan-500 text-white">
+                                    <option value="">Choisir un prospect...</option>
+                                    ${state.prospects.map(p => `<option value="${p.id}">${p.company}</option>`).join('')}
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-bold text-slate-400 uppercase mb-2">Sélectionner un Service / Offre</label>
+                                <select id="new-doc-service" required class="w-full p-3.5 bg-slate-800 border border-slate-700 rounded-xl text-sm font-medium outline-none focus:border-cyan-500 text-white">
+                                    <option value="">Choisir un service...</option>
+                                    <option value="1800">Site Vitrine Premium (1 800€)</option>
+                                    <option value="5000">Site Web d'Acquisition (5 000€)</option>
+                                    <option value="20000">Infrastructure Complète (20 000€)</option>
+                                    <option value="custom">Sur-mesure (Défini par le CRM)</option>
+                                </select>
+                            </div>
+                            <button type="submit" class="w-full py-3 bg-blue-600 text-white rounded-xl font-bold text-xs tracking-wider uppercase shadow-[0_0_15px_rgba(37,99,235,0.4)] hover:bg-blue-500 transition-all">Générer le Devis</button>
+                        </form>
+                    </div>
+                </div>`;
+                setHTML('modal-container', html);
+            },
+            
+            submitCreateDoc(e) {
+                e.preventDefault();
+                const clientId = parseInt($('new-doc-client').value);
+                const serviceVal = $('new-doc-service').value;
+                const client = state.prospects.find(p => p.id === clientId);
+                
+                let amount = client.value;
+                let details = "Prestation sur-mesure";
+                
+                if (serviceVal === "1800") { amount = 1800; details = "Site Vitrine Premium"; }
+                else if (serviceVal === "5000") { amount = 5000; details = "Site Web d'Acquisition"; }
+                else if (serviceVal === "20000") { amount = 20000; details = "Infrastructure Complète"; }
+
+                const newDoc = {
+                    id: `DEV-2026-0${state.invoices.length + 10}`,
+                    type: "Devis",
+                    client: client.company,
+                    email: client.email, 
+                    amount: amount,
+                    status: "Brouillon",
+                    date: "Aujourd'hui",
+                    details: details
+                };
+                state.invoices.unshift(newDoc); 
+                this.closeModal();
+                this.renderView();
+            },
+
+            transformToInvoice(docId, email) {
                 state.invoices = state.invoices.map(inv => {
                     if (inv.id === docId) {
-                        return { ...inv, type: 'Facture', id: inv.id.replace('DEV', 'FAC'), status: 'En attente' };
+                        return { ...inv, type: 'Facture', id: inv.id.replace('DEV', 'FAC'), status: 'Envoyée' };
                     }
                     return inv;
                 });
+                
+                alert(`Succès : La facture a été générée et envoyée automatiquement à l'adresse du CRM (${email}).`);
+                
                 this.closeModal();
                 this.renderView();
             },
@@ -684,6 +747,11 @@
             viewInvoice(id) {
                 const doc = state.invoices.find(i => i.id === id);
                 if(!doc) return;
+                
+                // Retrieve email if exists on doc, or find via CRM prospect mapping
+                const clientInfo = state.prospects.find(p => p.company === doc.client);
+                const email = doc.email || (clientInfo ? clientInfo.email : 'client@email.com');
+                
                 const html = `
                 <div class="fixed inset-0 z-50 flex items-center justify-center bg-[#0B0F19]/80 backdrop-blur-sm fade-in" onclick="window.app.closeModal()">
                     <div class="bg-slate-900 rounded-2xl shadow-2xl w-[600px] border border-slate-700 overflow-hidden hud-enter" onclick="event.stopPropagation()">
@@ -692,8 +760,12 @@
                                 <div><h2 class="text-2xl font-black text-white uppercase">${doc.type}</h2><p class="font-mono text-sm text-slate-500">${doc.id}</p></div>
                                 <div class="text-right"><p class="text-xs font-bold text-slate-500 uppercase">Émis le</p><p class="font-bold text-slate-300">${doc.date}</p></div>
                             </div>
-                            <div class="bg-slate-800/50 p-4 rounded-xl border border-slate-700 mb-6">
-                                <p class="text-[10px] font-bold text-slate-500 uppercase mb-1">Destinataire</p><p class="font-bold text-white text-lg">${doc.client}</p>
+                            <div class="bg-slate-800/50 p-4 rounded-xl border border-slate-700 mb-6 flex justify-between items-center">
+                                <div>
+                                    <p class="text-[10px] font-bold text-slate-500 uppercase mb-1">Destinataire</p>
+                                    <p class="font-bold text-white text-lg">${doc.client}</p>
+                                    <p class="text-xs text-blue-400 mt-1 flex items-center"><i data-lucide="mail" class="w-3 h-3 mr-1"></i> ${email}</p>
+                                </div>
                             </div>
                             <div class="flex justify-between items-center py-4 border-y border-slate-800">
                                 <span class="font-bold text-slate-400">${doc.details}</span><span class="font-black text-xl text-white">${doc.amount.toLocaleString()} €</span>
@@ -702,8 +774,8 @@
                         <div class="p-6 bg-slate-900 flex justify-between items-center">
                             <button onclick="window.app.closeModal()" class="px-5 py-2.5 text-xs font-bold text-slate-500 uppercase hover:text-white transition-colors">Fermer</button>
                             <div class="flex gap-2">
-                                ${doc.type === 'Devis' ? `<button onclick="alert('L\\'éditeur de devis complet s\\'ouvre ici.')" class="px-4 py-2.5 bg-slate-800 border border-slate-700 text-white rounded-xl font-bold text-xs uppercase hover:bg-slate-700 transition-colors">Modifier l'offre</button>` : ''}
-                                ${doc.type === 'Devis' ? `<button onclick="window.app.transformToInvoice('${doc.id}')" class="px-6 py-2.5 bg-blue-600 text-white rounded-xl font-bold text-xs tracking-wider uppercase hover:bg-blue-500 transition-all flex items-center"><i data-lucide="refresh-cw" class="w-4 h-4 mr-2"></i> Transformer en Facture</button>` : ''}
+                                ${doc.type === 'Devis' ? `<button onclick="window.app.transformToInvoice('${doc.id}', '${email}')" class="px-6 py-2.5 bg-blue-600 text-white rounded-xl font-bold text-xs tracking-wider uppercase hover:bg-blue-500 transition-all flex items-center shadow-[0_0_15px_rgba(37,99,235,0.4)]"><i data-lucide="send" class="w-4 h-4 mr-2"></i> Convertir & Envoyer Facture</button>` : ''}
+                                ${doc.type === 'Facture' ? `<button class="px-6 py-2.5 bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 rounded-xl font-bold text-xs tracking-wider uppercase transition-all flex items-center"><i data-lucide="check" class="w-4 h-4 mr-2"></i> Facture Envoyée</button>` : ''}
                             </div>
                         </div>
                     </div>
@@ -718,7 +790,7 @@
                         <div>
                             <h1 class="text-4xl font-black tracking-tight flex items-center text-white"><i data-lucide="receipt" class="w-8 h-8 mr-3 text-emerald-500"></i> FACTURATION</h1>
                         </div>
-                        <button class="px-6 py-3 bg-blue-600 text-white rounded-xl font-bold text-xs tracking-wider uppercase flex items-center"><i data-lucide="plus" class="w-5 h-5 mr-2"></i> Créer Devis/Facture</button>
+                        <button onclick="window.app.openCreateDocModal()" class="px-6 py-3 bg-blue-600 text-white rounded-xl font-bold text-xs tracking-wider uppercase flex items-center hover:bg-blue-500 transition-all shadow-[0_0_15px_rgba(37,99,235,0.4)]"><i data-lucide="plus" class="w-5 h-5 mr-2"></i> Créer Devis</button>
                     </div>
                     <div class="bg-slate-900/60 backdrop-blur-2xl rounded-2xl border border-slate-800 shadow-2xl overflow-hidden flex flex-col flex-1 hud-enter">
                         <div class="grid grid-cols-6 gap-4 p-5 border-b border-slate-800 bg-slate-800/50 text-xs font-black text-slate-400 uppercase tracking-widest">
