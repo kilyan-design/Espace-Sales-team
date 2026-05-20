@@ -1030,11 +1030,12 @@
             },
             gameNext() { if (state.game.currentStep < state.game.activeIntro.steps.length - 1) { state.game.currentStep++; state.game.choiceMade = null; this.renderView(); } },
             gamePrev() { if (state.game.currentStep > 0) { state.game.currentStep--; state.game.choiceMade = null; this.renderView(); } },
-            gameEnd(isRdv) {
+            gameEnd(isRdv, reason = 'not_interested') {
                 const s = state.callingStats;
                 s.calls++;
                 if (isRdv) { s.rdv++; s.streak++; if(s.streak>s.bestStreak) s.bestStreak=s.streak; } else { s.streak = 0; }
                 state.game.view = 'outcome';
+                state.game.lastOutcome = isRdv ? 'rdv' : reason;
                 this.renderView();
             },
 
@@ -1094,14 +1095,22 @@
                             </div>
                         </div>
                         <div class="px-6 py-5 border-t border-slate-800 flex gap-3 shrink-0 bg-[#050505]">
-                            ${g.currentStep > 0 ? `<button onclick="window.app.gamePrev()" class="w-14 bg-slate-900 border border-slate-800 text-slate-400 rounded-xl flex items-center justify-center hover:bg-slate-800"><i data-lucide="chevron-left" class="w-6 h-6"></i></button>` : ''}
-                            ${(!step.choices || g.choiceMade) ? ((isLast || step.final) ? `<div class="flex-1 flex flex-col space-y-2"><button onclick="window.app.gameEnd(true)" class="w-full py-4 bg-emerald-500 text-white rounded-xl font-bold text-sm hover:bg-emerald-600">✅ RDV pris !</button><button onclick="window.app.gameEnd(false)" class="w-full py-3 bg-slate-900 border border-slate-800 text-slate-400 rounded-xl font-bold text-sm hover:bg-slate-800">✗ Pas intéressé</button></div>` : `<button onclick="window.app.gameNext()" class="flex-1 bg-gradient-to-r from-cyan-400 to-blue-600 text-white rounded-xl font-bold text-sm shadow-[0_0_15px_rgba(34,211,238,0.2)]">Continuer →</button>`) : `<div class="flex-1 flex items-center justify-center text-[13px] text-slate-500 italic">Attente de la réponse du prospect...</div>`}
+                            ${g.currentStep > 0 ? `<button onclick="window.app.gamePrev()" class="w-14 bg-slate-900 border border-slate-800 text-slate-400 rounded-xl flex items-center justify-center hover:bg-slate-800 shrink-0"><i data-lucide="chevron-left" class="w-6 h-6"></i></button>` : ''}
+                            ${(!step.choices || g.choiceMade) ? ((isLast || step.final) ? `<div class="flex-1 flex flex-col space-y-2"><button onclick="window.app.gameEnd(true)" class="w-full py-4 bg-emerald-500 text-white rounded-xl font-bold text-sm hover:bg-emerald-600">✅ RDV pris !</button><button onclick="window.app.gameEnd(false, 'not_interested')" class="w-full py-3 bg-slate-900 border border-slate-800 text-slate-400 rounded-xl font-bold text-sm hover:bg-slate-800">✗ Pas intéressé</button></div>` : `<button onclick="window.app.gameNext()" class="flex-1 bg-gradient-to-r from-cyan-400 to-blue-600 text-white rounded-xl font-bold text-sm shadow-[0_0_15px_rgba(34,211,238,0.2)]">Continuer →</button>`) : `<div class="flex-1 flex items-center justify-center text-[13px] text-slate-500 italic">Attente de la réponse du prospect...</div>`}
+                            <button onclick="window.app.gameEnd(false, 'no_answer')" class="w-14 bg-slate-900 border border-rose-500/30 text-rose-400 rounded-xl flex items-center justify-center hover:bg-rose-500/10 transition-colors shrink-0" title="Pas de réponse (NRP)">
+                                <i data-lucide="phone-off" class="w-5 h-5"></i>
+                            </button>
                         </div>
                     </div>`;
                 } else if (g.view === 'outcome') {
+                    let outcomeTitle = 'Continue,<br><em>reste en jeu.</em>';
+                    let outcomeIcon = '💪';
+                    if (g.lastOutcome === 'rdv') { outcomeTitle = '<em>RDV</em><br>décroché !'; outcomeIcon = '🏆'; }
+                    else if (g.lastOutcome === 'no_answer') { outcomeTitle = 'Ça sonne<br><em>dans le vide...</em>'; outcomeIcon = '📵'; }
+
                     html += `<div class="flex-1 flex flex-col items-center justify-center p-10 text-center fade-in">
-                        <div class="text-7xl mb-6">${s.streak > 0 ? '🏆' : '💪'}</div>
-                        <h2 class="font-serif text-5xl text-white mb-3 leading-tight">${s.streak > 0 ? '<em>RDV</em><br>décroché !' : 'Continue,<br><em>reste en jeu.</em>'}</h2>
+                        <div class="text-7xl mb-6">${outcomeIcon}</div>
+                        <h2 class="font-serif text-5xl text-white mb-3 leading-tight">${outcomeTitle}</h2>
                         <div class="flex flex-col w-full max-w-sm space-y-3 mt-10">
                             <button onclick="window.app.gameStart()" class="w-full py-4 bg-gradient-to-r from-cyan-400 to-blue-600 text-white rounded-xl font-bold text-sm shadow-[0_0_15px_rgba(34,211,238,0.2)]">📞 Prochain appel</button>
                             <button onclick="window.app.gameHome()" class="w-full py-4 bg-slate-900 border border-slate-800 text-slate-400 rounded-xl font-bold text-sm hover:bg-slate-800">← Retour accueil</button>
