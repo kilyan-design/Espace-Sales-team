@@ -159,6 +159,22 @@
             game: { view: 'home', activeIntro: null, currentStep: 0, choiceMade: null, toast: {show:false, msg:'', icon:''} }
         };
 
+        const DELTOM_BASE_STEPS = [
+            { phase: 'Étape 2 : L\'Aiguillage Magique', text: `Plus sérieusement, j'avais une question toute simple pour vous :<br><br><span class="hl">Aujourd'hui, vous passez combien de temps à faire vos devis par semaine ?</span>`, choices: [ { label: "Option A : Beaucoup de temps (4h+)", prospect: "Ouf, j'y passe bien 4 à 5 heures, souvent le soir ou le week-end...", reply: "Ok... Du coup, j'imagine que c'est plutôt <em>l'acquisition de nouveaux clients</em> qui bloque de votre côté ?" }, { label: "Option B : Pas beaucoup de temps", prospect: "Pas beaucoup, peut-être 30 minutes, j'en ai pas des masses en ce moment.", reply: "Ok... Du coup, j'imagine que c'est plutôt <em>l'acquisition de nouveaux clients</em> qui bloque de votre côté ?" } ] },
+            { phase: 'Étape 3 : Le Reframe Unique', text: `Nickel.<br><br>Eh bien justement, c'est exactement là qu'on intervient.<span class="pause">(silence)</span>Notre but, c’est de vous faire <em>gagner un temps monstre</em>, vous simplifier la vie, et vous aider sur votre acquisition de clients.`, choices: [ { label: "Attendre sa réaction (Curiosité)", prospect: "D'accord, mais concrètement, vous faites quoi ?" } ] },
+            { phase: 'Étape 4 : La Proposition', text: `Vu que j'imagine que vous êtes bien occupé, ce que je vous propose, c'est qu'on se prenne <span class="hl">10 à 20 minutes</span> en visio.<br><br>Le but, c'est simplement de vous montrer comment ça marche et de voir si ça vous intéresse vraiment. <em>Tout simplement.</em>`, choices: [ { label: "Le rassurer (Ça n'engage à rien)", prospect: "Bon... d'accord, on peut faire ça, ça m'engage à rien." } ] },
+            { phase: 'Étape 5 : La Préqualification', text: `Exactement.<br><br>D'ailleurs, pour qu'on gagne du temps : <span class="hl">si notre méthode vous plaît</span>, et que vous arriviez au bout de votre capacité de chantiers...<span class="pause">(pause)</span>Est-ce que vous seriez prêt à <em>aller plus loin</em> (embaucher ou sous-traiter) ?`, choices: [ { label: "Oui, il est ambitieux", prospect: "Ah bah oui bien sûr, le but c'est de grossir !" }, { label: "Non, il veut rester seul", prospect: "Oh non, moi je veux rester tout seul, je veux pas m'embêter avec des salariés." } ] },
+            { phase: 'Étape 6 : Le Créneau', text: `Top, on sait exactement où on va comme ça.<br><br>On se cale ce petit moment ? J'ai une dispo ce <em>[Jour] à [Heure]</em> ou plutôt [Autre option] ?`, choices: [ { label: "Il valide un créneau", prospect: "Disons [Jour] à [Heure]." } ] },
+            { phase: 'Étape 7 : Verrouillage des Décideurs', text: `Ça marche. Juste une dernière chose : est-ce que vous prenez ce genre de décisions seul, ou avec un <em>associé</em> ou votre conjoint(e) ?`, choices: [ { label: "Option A : Il a un associé / conjoint", prospect: "Je prends ce genre de décision avec mon associé(e).", reply: `Ok bah à ce moment-là, je préfère que je vous montre à tous les deux en même temps et qu'on prenne un rendez-vous où vous seriez disponible tous les deux.<span class="pause">Au moins, on perd pas de temps à répéter.</span>` }, { label: "Option B : Il décide seul", prospect: "Non, je gère la boîte tout seul.", reply: `Parfait, on continue alors.` } ] },
+            { phase: 'Étape 8 : Le Cadre (Anti-No-Show)', text: `Parfait, c'est noté.<br><br>En revanche, je vais être très franc.<span class="pause">On a un planning ultra chargé.</span>Donc si vous avez la moindre réticence, ou si vous savez déjà que vous ne serez pas dispo, <span class="hl">dites-le moi maintenant.</span><br><br>Je ne veux faire perdre de temps à personne. On est transparents là-dessus ?`, choices: [ { label: "Engagement total", prospect: "Non non, c'est promis, je serai là !" } ] },
+            { phase: 'Étape 9 : Capture Mail & Clôture', text: `Super, j'adore la clarté.<br><br>Du coup, je récupère juste votre <em>adresse email</em> pour vous envoyer l'invitation Google Meet. Vous serez en visio avec mon collègue expert.<span class="pause">C'est quoi votre mail ?</span>`, choices: [ { label: "Noter son adresse email", prospect: "C'est contact.artisan@gmail.com...", reply: `C'est bien reçu, l'invitation est envoyée.<span class="pause">Soyez bien posé devant un écran d'ordinateur.</span>Passez une excellente fin de journée, à <em>[Jour]</em> !` } ], final: true }
+        ];
+
+        const INTROS = [
+            { num:'01', tag:'Humour', name:'La Pizzeria', featured:true, steps:[ { phase:'Étape 1 : L\'Icebreaker 🍕', text:`<em>"Bonjour, je vais vous commander une margarita et une royale s'il vous plaît. Ça peut être prêt dans combien de temps ?"</em>`, choices: [ { label: "Attendre sa réaction (Surpris)", prospect: "Euh... attendez, vous devez vous tromper de numéro là, on ne fait pas de pizzas.", reply: "<em>[Rire chaleureux]</em> Non, je plaisante. Je suis bien avec [telle entreprise]." } ] }, ...DELTOM_BASE_STEPS ] },
+            { num:'02', tag:'Énergie', name:'Les Panneaux Solaires', featured:false, steps:[ { phase:'Étape 1 : L\'Icebreaker ☀️', text:`<em>"EH OUI BONJOUR C'EST POUR LES PANNEAUX SOLAIRES !"</em>`, choices: [ { label: "Attendre sa réaction (Agacé)", prospect: "Non merci, on n'a besoin de rien du tout !", reply: "<em>[Rire chaleureux]</em> Non, je plaisante. Je suis bien avec [telle entreprise]." } ] }, ...DELTOM_BASE_STEPS ] }
+        ];
+
         // --- CORE UTILS ---
         const $ = id => document.getElementById(id);
         function setHTML(id, html) {
@@ -315,7 +331,7 @@
                     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 hud-enter" style="animation-delay: 0.1s">
                         <div class="lg:col-span-2 bg-slate-900/60 backdrop-blur-2xl p-6 rounded-2xl border border-slate-800 shadow-2xl relative overflow-hidden">
                             <h3 class="text-sm font-bold tracking-widest text-white uppercase mb-6 flex items-center">
-                                <i data-lucide="line-chart" class="w-4 h-4 mr-2 text-blue-500"></i> Pipeline des Ventes
+                                <i data-lucide="line-chart" class="w-4 h-4 mr-2 text-blue-500"></i> Pipeline des Ventes Récent
                             </h3>
                             <div class="h-56 w-full flex items-end justify-between px-2 relative">
                                 <div class="absolute inset-0 grid grid-rows-4 gap-0 pointer-events-none border-b border-slate-800">
@@ -334,10 +350,10 @@
                         </div>
                         <div class="bg-slate-900/60 backdrop-blur-2xl p-6 rounded-2xl border border-slate-800 shadow-2xl">
                             <h3 class="text-sm font-bold tracking-widest text-white uppercase mb-4 flex items-center">
-                                <i data-lucide="bot" class="w-4 h-4 mr-2 text-cyan-500"></i> Activité IA
+                                <i data-lucide="bot" class="w-4 h-4 mr-2 text-cyan-500"></i> Activité IA & Workflows
                             </h3>
                             <div class="space-y-4">
-                                ${[{t:"Transcription appel", s:"Terminé", c:"text-emerald-400"},{t:"Import Leads", s:"Actif", c:"text-blue-400"}].map(log => `
+                                ${[{t:"Transcription appel", s:"Terminé", c:"text-emerald-400"},{t:"Séquence Nurturing", s:"Actif", c:"text-blue-400"}].map(log => `
                                     <div class="p-3 bg-slate-800/50 rounded-xl border border-slate-700/50">
                                         <div class="flex justify-between items-center mb-1">
                                             <span class="text-xs font-extrabold text-white">Jarvis Bot</span>
@@ -1045,6 +1061,11 @@
                         <h1 class="text-6xl font-serif text-white leading-tight mb-4 tracking-tight">Setting<br><em class="text-cyan-400 not-italic">Ultime.</em></h1>
                         <p class="text-sm text-slate-400 font-light mb-12 max-w-md leading-relaxed">Prompteur interactif. Lis, clique sur sa réponse, rebondis, et verrouille tes RDVs.</p>
                         <button onclick="window.app.gameStart()" class="px-8 py-4 bg-gradient-to-r from-cyan-400 to-blue-600 text-white rounded-2xl font-bold text-lg hover:scale-95 transition-transform shadow-[0_0_30px_rgba(34,211,238,0.3)]">📞 Lancer un appel</button>
+                        <div class="flex space-x-4 mt-12 w-full max-w-md">
+                            <div class="flex-1 bg-slate-900 border border-slate-800 rounded-xl p-4 text-center"><div class="text-3xl font-serif text-cyan-400 leading-none">${s.calls}</div><div class="text-[9px] font-bold tracking-[0.2em] uppercase text-slate-500 mt-2">Appels</div></div>
+                            <div class="flex-1 bg-slate-900 border border-slate-800 rounded-xl p-4 text-center"><div class="text-3xl font-serif text-cyan-400 leading-none">${s.rdv}</div><div class="text-[9px] font-bold tracking-[0.2em] uppercase text-slate-500 mt-2">RDV</div></div>
+                            <div class="flex-1 bg-slate-900 border border-slate-800 rounded-xl p-4 text-center"><div class="text-3xl font-serif text-cyan-400 leading-none">${rate}</div><div class="text-[9px] font-bold tracking-[0.2em] uppercase text-slate-500 mt-2">Taux</div></div>
+                        </div>
                     </div>`;
                 } else if (g.view === 'intros') {
                     html += `<div class="flex-1 flex flex-col fade-in">${statsBar}
