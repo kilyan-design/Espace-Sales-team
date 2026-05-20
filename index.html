@@ -1,0 +1,828 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Delthom Agency OS</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Custom CSS -->
+    <style>
+        body { font-family: 'DM Sans', sans-serif; }
+        .font-serif { font-family: 'DM Serif Display', serif; }
+        
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background-color: rgba(51, 65, 85, 0.5); border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background-color: rgba(34, 211, 238, 0.5); }
+        
+        .hud-enter { opacity: 0; transform: translateY(15px); animation: hudEnter 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        @keyframes hudEnter { 0% { opacity: 0; transform: translateY(15px); } 100% { opacity: 1; transform: translateY(0); } }
+        
+        .fade-in { animation: fadeIn 0.3s ease-out forwards; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        /* Pour inverser la couleur de l'icône calendrier/horloge native dans les inputs en mode sombre */
+        input[type="date"]::-webkit-calendar-picker-indicator,
+        input[type="time"]::-webkit-calendar-picker-indicator { filter: invert(1); }
+
+        /* Styles spécifiques au jeu Calling pour correspondre à ton index.html */
+        .game-wrapper .hl { background: rgba(34, 211, 238, 0.15); border-radius: 3px; padding: 1px 5px; color: #67e8f9; }
+        .game-wrapper em { font-style: italic; color: #22d3ee; }
+        .game-wrapper .pause { display: block; font-size: 13px; font-style: italic; color: #9ca3af; margin: 10px 0; font-weight: 300; }
+        
+        [draggable="true"] { cursor: grab; }
+        [draggable="true"]:active { cursor: grabbing; }
+    </style>
+</head>
+<body class="flex h-screen font-sans text-slate-100 overflow-hidden relative bg-[#0B0F19] selection:bg-cyan-500/30 selection:text-cyan-200">
+    
+    <!-- Background Design -->
+    <div class="fixed inset-0 z-0 pointer-events-none bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-blue-900/10 via-[#0B0F19] to-cyan-900/10"></div>
+
+    <!-- SIDEBAR -->
+    <aside class="w-64 bg-[#0B0F19] border-r border-[#1a1f2e] flex flex-col h-full flex-shrink-0 z-20 shadow-2xl relative">
+        <nav class="flex-1 overflow-y-auto py-6 px-4 space-y-1 custom-scrollbar flex flex-col" id="sidebar-nav">
+            <!-- Rendu en JS -->
+        </nav>
+
+        <div class="p-4 border-t border-[#1a1f2e] space-y-1">
+           <button class="w-full flex items-center space-x-4 px-4 py-3 rounded-lg text-slate-400 hover:text-white hover:bg-[#111623] transition-all">
+             <i data-lucide="settings" class="w-5 h-5 text-slate-500"></i>
+             <span class="text-sm font-semibold tracking-wide">Paramètres</span>
+           </button>
+           <button class="w-full flex items-center space-x-4 px-4 py-3 rounded-lg text-slate-400 hover:text-white hover:bg-[#111623] transition-all">
+             <i data-lucide="log-out" class="w-5 h-5 text-slate-500"></i>
+             <span class="text-sm font-semibold tracking-wide">Déconnexion</span>
+           </button>
+        </div>
+
+        <div class="px-4 pb-6 pt-2">
+           <div class="w-full flex items-center px-4 py-2.5 bg-[#151a2d] border border-[#212942] rounded-lg">
+             <div class="w-2 h-2 rounded-full bg-emerald-400 mr-3 animate-pulse shadow-[0_0_8px_rgba(52,211,153,0.8)]"></div>
+             <i data-lucide="flame" class="w-4 h-4 text-cyan-500 mr-2"></i>
+             <span class="text-xs font-semibold text-slate-300">JARVIS en ligne</span>
+           </div>
+        </div>
+    </aside>
+
+    <!-- MAIN APP AREA -->
+    <main class="flex-1 flex flex-col h-full overflow-hidden relative z-10 bg-[#050810]">
+        
+        <!-- HEADER -->
+        <header class="h-16 border-b border-[#1a1f2e] flex items-center justify-between px-10 shrink-0">
+            <div class="text-xs font-bold text-slate-500 flex items-center uppercase tracking-widest">
+                SYS_LOC <i data-lucide="chevron-right" class="w-4 h-4 mx-2 text-slate-600"></i> 
+                <span id="header-loc" class="text-cyan-400 font-black px-2 py-1 bg-cyan-500/10 border border-cyan-500/20 rounded-md">...</span>
+            </div>
+            <div class="flex items-center space-x-6">
+                <div class="flex items-center space-x-2 bg-[#111623] px-3 py-1.5 rounded-lg border border-[#1a1f2e]">
+                    <span class="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Profil :</span>
+                    <select id="role-selector" onchange="app.changeRole(this.value)" class="bg-transparent text-sm font-black text-cyan-400 outline-none cursor-pointer">
+                        <option value="Admin">Admin Supérieur</option>
+                        <option value="Closer">Closer (Ventes)</option>
+                        <option value="Setter" selected>Setter (Appels)</option>
+                    </select>
+                </div>
+                <button class="relative text-slate-400 hover:text-white transition-colors">
+                    <i data-lucide="bell" class="w-5 h-5"></i>
+                    <span class="absolute -top-1 -right-1 w-2 h-2 bg-cyan-500 rounded-full shadow-[0_0_10px_rgba(34,211,238,0.8)]"></span>
+                </button>
+            </div>
+        </header>
+
+        <!-- DYNAMIC CONTENT AREA -->
+        <div id="app-content" class="flex-1 overflow-y-auto p-10 relative custom-scrollbar">
+            <!-- Views will be injected here via JS -->
+        </div>
+
+    </main>
+
+    <!-- GLOBAL MODAL CONTAINER -->
+    <div id="modal-container"></div>
+
+    <!-- JAVASCRIPT APPLICATION LOGIC -->
+    <script>
+        // --- 1. DATA & STATE ---
+        const MOCK_DATA = {
+            prospects: [
+                { id: 1, name: "Oudot", company: "Point Fort Fichet", sector: "Artisanat", phone: "+33 6 32 21 56 91", email: "contact@oudot.fr", status: "Nouveau lead", initial: "O", assignee: 3, score: 85, source: "Google Maps", lastContact: "Jamais", value: 1500, onoff: "Transcription Onoff (12/05) : Client frustré par ses campagnes Ads actuelles." },
+                { id: 2, name: "Dupont", company: "Clim Instal Plus", sector: "Climatisation", phone: "+33 6 52 51 00 33", email: "dir@clim-instal.com", status: "Qualifié", initial: "C", assignee: 4, score: 92, source: "Fichier Excel", lastContact: "Aujourd'hui", value: 3200, onoff: "Transcription Onoff (Aujourd'hui) : Le devis semble ok." },
+                { id: 3, name: "Jean D.", company: "AIRFROIDISER", sector: "Climatisation", phone: "+33 6 50 78 30 00", email: "jean@airfroidiser.fr", status: "Nouveau lead", initial: "A", assignee: null, score: 45, source: "Capture d'écran", lastContact: "Hier", value: 900, onoff: "Pas d'appel enregistré." },
+                { id: 4, name: "Marc S.", company: "D Clim Service", sector: "Climatisation", phone: "+33 6 34 99 15 45", email: "marc@dclim.com", status: "À rappeler", initial: "D", assignee: 1, score: 78, source: "Appel Entrant", lastContact: "Il y a 2 jours", value: 2100, onoff: "Transcription Onoff (08/05) : Demande à être rappelé la semaine pro." },
+                { id: 5, name: "Luc V.", company: "Vezzoni Immo", sector: "Immobilier", phone: "+33 6 16 96 52 54", email: "vezzoni.ml@gmail.com", status: "Closer", initial: "V", assignee: 2, score: 95, source: "LinkedIn", lastContact: "Aujourd'hui", value: 4500, onoff: "Transcription Onoff (Ce matin) : Accord verbal obtenu." },
+            ],
+            invoices: [
+                { id: "DEV-2026-042", type: "Devis", client: "AIRFROIDISER", amount: 900, status: "Envoyé", date: "18 Mai 2026", details: "Site vitrine one-page" },
+                { id: "FAC-2026-001", type: "Facture", client: "Vezzoni Immo", amount: 4500, status: "Payée", date: "10 Mai 2026", details: "Acompte 50% Création Site Web" }
+            ],
+            events: [
+                { id: 1, title: "Démo Produit - Clim Instal Plus", date: "Aujourd'hui", time: "14:30" },
+                { id: 2, title: "Closing - Vezzoni Immo", date: "Demain", time: "10:00" }
+            ],
+            callingStats: { calls: 0, rdv: 0, streak: 0, bestStreak: 0 }
+        };
+
+        const state = {
+            activeTab: 'Session Calling',
+            userRole: 'Setter', // Admin, Closer, Setter
+            prospects: [...MOCK_DATA.prospects],
+            invoices: [...MOCK_DATA.invoices],
+            events: [...MOCK_DATA.events],
+            callingStats: { ...MOCK_DATA.callingStats }, 
+            crm: { viewMode: 'kanban', showFilters: false, filters: { sector: '', score: '', value: '' } },
+            game: { view: 'home', activeIntro: null, currentStep: 0, choiceMade: null, toast: {show:false, msg:'', icon:''} }
+        };
+
+        // --- GAME DATA ---
+        const DELTOM_BASE_STEPS = [
+            { phase: 'Étape 2 : L\'Aiguillage Magique', text: `Plus sérieusement, j'avais une question toute simple pour vous :<br><br><span class="hl">Aujourd'hui, vous passez combien de temps à faire vos devis par semaine ?</span>`, choices: [ { label: "Option A : Beaucoup de temps (4h+)", prospect: "Ouf, j'y passe bien 4 à 5 heures, souvent le soir ou le week-end...", reply: "Ok... Du coup, j'imagine que c'est plutôt <em>l'acquisition de nouveaux clients</em> qui bloque de votre côté ?" }, { label: "Option B : Pas beaucoup de temps", prospect: "Pas beaucoup, peut-être 30 minutes, j'en ai pas des masses en ce moment.", reply: "Ok... Du coup, j'imagine que c'est plutôt <em>l'acquisition de nouveaux clients</em> qui bloque de votre côté ?" } ] },
+            { phase: 'Étape 3 : Le Reframe Unique', text: `Nickel.<br><br>Eh bien justement, c'est exactement là qu'on intervient.<span class="pause">(silence)</span>Notre but, c’est de vous faire <em>gagner un temps monstre</em>, vous simplifier la vie, et vous aider sur votre acquisition de clients.`, choices: [ { label: "Attendre sa réaction (Curiosité)", prospect: "D'accord, mais concrètement, vous faites quoi ?" } ] },
+            { phase: 'Étape 4 : La Proposition', text: `Vu que j'imagine que vous êtes bien occupé, ce que je vous propose, c'est qu'on se prenne <span class="hl">10 à 20 minutes</span> en visio.<br><br>Le but, c'est simplement de vous montrer comment ça marche et de voir si ça vous intéresse vraiment. <em>Tout simplement.</em>`, choices: [ { label: "Le rassurer (Ça n'engage à rien)", prospect: "Bon... d'accord, on peut faire ça, ça m'engage à rien." } ] },
+            { phase: 'Étape 5 : La Préqualification', text: `Exactement.<br><br>D'ailleurs, pour qu'on gagne du temps : <span class="hl">si notre méthode vous plaît</span>, et que vous arriviez au bout de votre capacité de chantiers...<span class="pause">(pause)</span>Est-ce que vous seriez prêt à <em>aller plus loin</em> (embaucher ou sous-traiter) ?`, choices: [ { label: "Oui, il est ambitieux", prospect: "Ah bah oui bien sûr, le but c'est de grossir !" }, { label: "Non, il veut rester seul", prospect: "Oh non, moi je veux rester tout seul, je veux pas m'embêter avec des salariés." } ] },
+            { phase: 'Étape 6 : Le Créneau', text: `Top, on sait exactement où on va comme ça.<br><br>On se cale ce petit moment ? J'ai une dispo ce <em>[Jour] à [Heure]</em> ou plutôt [Autre option] ?`, choices: [ { label: "Il valide un créneau", prospect: "Disons [Jour] à [Heure]." } ] },
+            { phase: 'Étape 7 : Verrouillage des Décideurs', text: `Ça marche. Juste une dernière chose : est-ce que vous prenez ce genre de décisions seul, ou avec un <em>associé</em> ou votre conjoint(e) ?`, choices: [ { label: "Option A : Il a un associé / conjoint", prospect: "Je prends ce genre de décision avec mon associé(e).", reply: `Ok bah à ce moment-là, je préfère que je vous montre à tous les deux en même temps et qu'on prenne un rendez-vous où vous seriez disponible tous les deux.<span class="pause">Au moins, on perd pas de temps à répéter.</span>` }, { label: "Option B : Il décide seul", prospect: "Non, je gère la boîte tout seul.", reply: `Parfait, on continue alors.` } ] },
+            { phase: 'Étape 8 : Le Cadre (Anti-No-Show)', text: `Parfait, c'est noté.<br><br>En revanche, je vais être très franc.<span class="pause">On a un planning ultra chargé.</span>Donc si vous avez la moindre réticence, ou si vous savez déjà que vous ne serez pas dispo, <span class="hl">dites-le moi maintenant.</span><br><br>Je ne veux faire perdre de temps à personne. On est transparents là-dessus ?`, choices: [ { label: "Engagement total", prospect: "Non non, c'est promis, je serai là !" } ] },
+            { phase: 'Étape 9 : Capture Mail & Clôture', text: `Super, j'adore la clarté.<br><br>Du coup, je récupère juste votre <em>adresse email</em> pour vous envoyer l'invitation Google Meet. Vous serez en visio avec mon collègue expert.<span class="pause">C'est quoi votre mail ?</span>`, choices: [ { label: "Noter son adresse email", prospect: "C'est contact.artisan@gmail.com...", reply: `C'est bien reçu, l'invitation est envoyée.<span class="pause">Soyez bien posé devant un écran d'ordinateur.</span>Passez une excellente fin de journée, à <em>[Jour]</em> !` } ], final: true }
+        ];
+
+        const INTROS = [
+            { num:'01', tag:'Humour', name:'La Pizzeria', featured:true, steps:[ { phase:'Étape 1 : L\'Icebreaker 🍕', text:`<em>"Bonjour, je vais vous commander une margarita et une royale s'il vous plaît. Ça peut être prêt dans combien de temps ?"</em>`, choices: [ { label: "Attendre sa réaction (Surpris)", prospect: "Euh... attendez, vous devez vous tromper de numéro là, on ne fait pas de pizzas.", reply: "<em>[Rire chaleureux]</em> Non, je plaisante. Je suis bien avec [telle entreprise]." } ] }, ...DELTOM_BASE_STEPS ] },
+            { num:'02', tag:'Énergie', name:'Les Panneaux Solaires', featured:false, steps:[ { phase:'Étape 1 : L\'Icebreaker ☀️', text:`<em>"EH OUI BONJOUR C'EST POUR LES PANNEAUX SOLAIRES !"</em>`, choices: [ { label: "Attendre sa réaction (Agacé)", prospect: "Non merci, on n'a besoin de rien du tout !", reply: "<em>[Rire chaleureux]</em> Non, je plaisante. Je suis bien avec [telle entreprise]." } ] }, ...DELTOM_BASE_STEPS ] }
+        ];
+
+        // --- 2. CORE UTILS ---
+        const $ = id => document.getElementById(id);
+        
+        function setHTML(id, html) {
+            const el = $(id);
+            if (el) {
+                el.innerHTML = html;
+                lucide.createIcons({ root: el });
+            }
+        }
+
+        // --- 3. APP LOGIC & RENDERING ---
+        const app = {
+            init() {
+                this.renderSidebar();
+                this.renderView();
+            },
+
+            setTab(tabId) {
+                state.activeTab = tabId;
+                this.renderSidebar();
+                this.renderView();
+            },
+
+            changeRole(role) {
+                state.userRole = role;
+                this.renderView();
+            },
+
+            closeModal() {
+                setHTML('modal-container', '');
+            },
+
+            renderSidebar() {
+                const navs = [
+                    { id: 'Dashboard', icon: 'layout-dashboard', label: 'Dashboard' },
+                    { id: 'CRM', icon: 'users', label: 'Prospects' },
+                    { id: 'Pipeline', icon: 'line-chart', label: 'Pipeline' },
+                    { id: 'Agenda', icon: 'calendar', label: 'Agenda' }
+                ];
+
+                let html = navs.map(item => `
+                    <button onclick="app.setTab('${item.id}')" class="w-full flex items-center space-x-4 px-4 py-3 rounded-lg transition-all duration-200 ${state.activeTab === item.id ? 'bg-[#151b2b] text-white' : 'text-slate-400 hover:text-white hover:bg-[#111623]'}">
+                        <i data-lucide="${item.icon}" class="w-5 h-5 ${state.activeTab === item.id ? 'text-cyan-400' : 'text-slate-500'}"></i>
+                        <span class="text-sm font-semibold tracking-wide ${state.activeTab === item.id ? 'text-white' : 'text-slate-400'}">${item.label}</span>
+                    </button>
+                `).join('');
+
+                html += `<div class="my-2 border-b border-[#1a1f2e]"></div>
+                <button onclick="app.setTab('Facturation')" class="w-full flex items-center space-x-4 px-4 py-3 rounded-lg transition-all duration-200 ${state.activeTab === 'Facturation' ? 'bg-[#151b2b] text-white' : 'text-slate-400 hover:text-white hover:bg-[#111623]'}">
+                    <i data-lucide="receipt" class="w-5 h-5 ${state.activeTab === 'Facturation' ? 'text-cyan-400' : 'text-slate-500'}"></i>
+                    <span class="text-sm font-semibold tracking-wide">Facturation</span>
+                </button>
+                
+                <!-- BOUTON SESSION CALLING MIS TOUT EN BAS -->
+                <div class="mt-auto pt-8 pb-2">
+                    <button onclick="app.setTab('Session Calling')" class="w-full py-3.5 rounded-xl flex items-center justify-center text-white font-bold text-sm tracking-wider uppercase transition-all hover:scale-[0.98] shadow-[0_0_20px_rgba(34,211,238,0.15)] ${state.activeTab === 'Session Calling' ? 'bg-gradient-to-r from-cyan-400 to-blue-500 ring-2 ring-cyan-500/50' : 'bg-gradient-to-r from-cyan-500 to-blue-600'}">
+                        <i data-lucide="phone-call" class="w-5 h-5 mr-2"></i> SESSION CALLING
+                    </button>
+                </div>`;
+
+                setHTML('sidebar-nav', html);
+                $('header-loc').innerText = state.activeTab;
+            },
+
+            renderView() {
+                const content = $('app-content');
+                content.innerHTML = ''; 
+
+                switch (state.activeTab) {
+                    case 'Dashboard': this.renderDashboard(content); break;
+                    case 'CRM': 
+                    case 'Pipeline': this.renderCRM(content); break;
+                    case 'Agenda': this.renderAgenda(content); break;
+                    case 'Facturation': this.renderFacturation(content); break;
+                    case 'Session Calling': this.renderGame(content); break;
+                }
+                lucide.createIcons({ root: content });
+            },
+
+            // --- DASHBOARD ---
+            renderDashboard(container) {
+                const closedCA = state.prospects.filter(p => p.status === 'Closer').reduce((acc, curr) => acc + curr.value, 0);
+                
+                let stats = [];
+                if (state.userRole === 'Admin') {
+                    stats = [
+                        { title: "Prospects Actifs", val: state.prospects.length, trend: "up", tVal: "+1", icon: 'target', col: "blue" },
+                        { title: "CA Réalisé (Ce Mois)", val: `${closedCA.toLocaleString()} €`, trend: "up", tVal: "14%", icon: 'receipt', col: "emerald" },
+                        { title: "Taux de Conversion", val: "24%", trend: "up", tVal: "2.1%", icon: 'crosshair', col: "cyan" },
+                        { title: "Appels Globaux", val: "842", trend: "up", tVal: "5%", icon: 'phone', col: "indigo" }
+                    ];
+                } else if (state.userRole === 'Closer') {
+                    stats = [
+                        { title: "RDV Réalisés (Mois)", val: "28", trend: "up", tVal: "+4", icon: 'calendar', col: "blue" },
+                        { title: "Taux de Transfo", val: "32%", trend: "up", tVal: "5%", icon: 'crosshair', col: "cyan" },
+                        { title: "Closings (Ce Mois)", val: "8", trend: "up", tVal: "+2", icon: 'check-circle-2', col: "indigo" },
+                        { title: "CA Réalisé", val: `${closedCA.toLocaleString()} €`, trend: "up", tVal: "12%", icon: 'receipt', col: "emerald" }
+                    ];
+                } else {
+                    stats = [
+                        { title: "Appels (Aujourd'hui)", val: "142", trend: "up", tVal: "+12", icon: 'phone', col: "blue" },
+                        { title: "Taux de Booking", val: "22%", trend: "up", tVal: "4%", icon: 'calendar', col: "emerald" },
+                        { title: "RDV Qualifiés", val: "8", trend: "up", tVal: "+2", icon: 'check-circle-2', col: "cyan" },
+                        { title: "Temps de parole", val: "4h 12m", trend: "down", tVal: "10m", icon: 'mic', col: "indigo" }
+                    ];
+                }
+
+                container.innerHTML = `
+                <div class="space-y-6">
+                    <div class="hud-enter flex justify-between items-end">
+                        <div>
+                            <h1 class="text-4xl font-black tracking-tight flex items-center bg-gradient-to-r from-blue-400 to-cyan-300 text-transparent bg-clip-text">
+                                <i data-lucide="layout-dashboard" class="w-8 h-8 mr-3 text-blue-500"></i> DASHBOARD
+                            </h1>
+                            <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mt-2 flex items-center">
+                                Vue adaptée au profil : <span class="ml-2 text-cyan-400 bg-cyan-500/10 border border-cyan-500/20 px-2 py-0.5 rounded">${state.userRole}</span>
+                            </p>
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                        ${stats.map(s => `
+                            <div class="relative bg-slate-900/60 backdrop-blur-2xl p-5 rounded-2xl border border-slate-800 hover:border-cyan-500/30 transition-all duration-300 group overflow-hidden hud-enter">
+                                <div class="absolute top-0 right-0 w-32 h-32 bg-${s.col}-500/10 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none"></div>
+                                <div class="relative z-10">
+                                    <div class="flex justify-between items-start mb-4">
+                                        <div class="p-2.5 rounded-xl bg-slate-800/80 text-${s.col}-400 ring-1 ring-inset ring-${s.col}-500/20 shadow-[0_0_15px_rgba(59,130,246,0.1)]">
+                                            <i data-lucide="${s.icon}" class="w-5 h-5"></i>
+                                        </div>
+                                        <span class="flex items-center text-[10px] font-bold px-2 py-1 rounded-full ${s.trend==='up'?'bg-emerald-500/10 text-emerald-400 border-emerald-500/20':'bg-rose-500/10 text-rose-400 border-rose-500/20'}">
+                                            <i data-lucide="arrow-${s.trend}-right" class="w-3 h-3 mr-1"></i> ${s.tVal}
+                                        </span>
+                                    </div>
+                                    <div>
+                                        <h3 class="text-3xl font-extrabold text-white tracking-tight mb-1">${s.val}</h3>
+                                        <p class="text-xs font-bold tracking-wide text-slate-400 uppercase">${s.title}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 hud-enter" style="animation-delay: 0.1s">
+                        <div class="lg:col-span-2 bg-slate-900/60 backdrop-blur-2xl p-6 rounded-2xl border border-slate-800 shadow-2xl relative overflow-hidden">
+                            <h3 class="text-sm font-bold tracking-widest text-white uppercase mb-6 flex items-center">
+                                <i data-lucide="line-chart" class="w-4 h-4 mr-2 text-blue-500"></i> Pipeline des Ventes
+                            </h3>
+                            <div class="h-56 w-full flex items-end justify-between px-2 relative">
+                                <div class="absolute inset-0 grid grid-rows-4 gap-0 pointer-events-none border-b border-slate-800">
+                                    <div class="border-t border-slate-800/50 w-full h-full"></div>
+                                    <div class="border-t border-slate-800/50 w-full h-full"></div>
+                                    <div class="border-t border-slate-800/50 w-full h-full"></div>
+                                    <div class="border-t border-slate-800/50 w-full h-full"></div>
+                                </div>
+                                ${[{h:30,d:'Lun'},{h:50,d:'Mar'},{h:40,d:'Mer'},{h:70,d:'Jeu'},{h:60,d:'Ven'},{h:90,d:'Sam'},{h:80,d:'Dim'}].map(bar => `
+                                    <div class="relative group w-12 flex flex-col items-center justify-end h-full">
+                                        <div class="w-full bg-gradient-to-t from-blue-600 to-cyan-400 rounded-t-md opacity-80 transition-all cursor-pointer shadow-[0_0_20px_rgba(56,189,248,0.3)]" style="height:${bar.h}%"></div>
+                                        <span class="text-[10px] font-bold text-slate-500 mt-2 uppercase">${bar.d}</span>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                        <div class="bg-slate-900/60 backdrop-blur-2xl p-6 rounded-2xl border border-slate-800 shadow-2xl">
+                            <h3 class="text-sm font-bold tracking-widest text-white uppercase mb-4 flex items-center">
+                                <i data-lucide="bot" class="w-4 h-4 mr-2 text-cyan-500"></i> Activité IA
+                            </h3>
+                            <div class="space-y-4">
+                                ${[{t:"Transcription appel", s:"Terminé", c:"text-emerald-400"},{t:"Import Leads", s:"Actif", c:"text-blue-400"}].map(log => `
+                                    <div class="p-3 bg-slate-800/50 rounded-xl border border-slate-700/50">
+                                        <div class="flex justify-between items-center mb-1">
+                                            <span class="text-xs font-extrabold text-white">Jarvis Bot</span>
+                                            <span class="text-[10px] font-bold text-slate-500">Maintenant</span>
+                                        </div>
+                                        <div class="flex justify-between items-center">
+                                            <span class="text-xs font-medium text-slate-400">${log.t}</span>
+                                            <span class="text-[9px] font-black uppercase ${log.c} bg-slate-900 px-2 py-0.5 rounded border border-slate-700">${log.s}</span>
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    </div>
+                </div>`;
+            },
+
+            // --- CRM / PIPELINE ---
+            setCRMViewMode(mode) {
+                state.crm.viewMode = mode;
+                this.renderView();
+            },
+            
+            toggleCRMFilters() {
+                state.crm.showFilters = !state.crm.showFilters;
+                this.renderView();
+            },
+
+            openProspectModal(id) {
+                const prospect = state.prospects.find(p => p.id === id);
+                if (!prospect) return;
+
+                const html = `
+                <div class="fixed inset-0 z-50 flex items-center justify-center bg-[#0B0F19]/80 backdrop-blur-sm fade-in" onclick="app.closeModal()">
+                    <div class="bg-slate-900 rounded-2xl shadow-2xl w-[700px] max-h-[90vh] overflow-y-auto border border-slate-700 overflow-hidden hud-enter" onclick="event.stopPropagation()">
+                        <div class="px-6 py-5 border-b border-slate-800 flex justify-between items-center bg-slate-900 sticky top-0 z-10">
+                            <div class="flex items-center space-x-4">
+                                <div class="w-12 h-12 rounded-xl bg-slate-800 text-cyan-400 flex items-center justify-center font-black text-xl border border-slate-700">${prospect.initial}</div>
+                                <div>
+                                    <h2 class="font-black text-white text-lg tracking-tight">${prospect.company}</h2>
+                                    <span class="text-[10px] font-bold text-cyan-500 uppercase tracking-widest">${prospect.status} · Score ${prospect.score}</span>
+                                </div>
+                            </div>
+                            <button onclick="app.closeModal()" class="text-slate-400 hover:text-white p-2 bg-slate-800 rounded-full"><i data-lucide="x" class="w-5 h-5"></i></button>
+                        </div>
+                        <div class="p-6 space-y-6">
+                            <div class="grid grid-cols-2 gap-4">
+                                <div class="bg-slate-800/50 p-4 rounded-xl border border-slate-700">
+                                    <p class="text-[10px] font-bold text-slate-400 uppercase mb-1">Contact Principal</p>
+                                    <p class="font-bold text-white">${prospect.name}</p>
+                                </div>
+                                <div class="bg-slate-800/50 p-4 rounded-xl border border-slate-700">
+                                    <p class="text-[10px] font-bold text-slate-400 uppercase mb-1">Valeur Estimée</p>
+                                    <p class="font-black text-cyan-400">${prospect.value.toLocaleString()} €</p>
+                                </div>
+                                <div class="bg-slate-800/50 p-4 rounded-xl border border-slate-700 flex items-center space-x-3">
+                                    <div class="p-2 bg-slate-700 rounded-lg"><i data-lucide="phone" class="w-4 h-4 text-cyan-400"></i></div>
+                                    <div><p class="text-[10px] font-bold text-slate-400 uppercase">Téléphone</p><p class="font-bold text-white text-sm">${prospect.phone}</p></div>
+                                </div>
+                                <div class="bg-slate-800/50 p-4 rounded-xl border border-slate-700 flex items-center space-x-3">
+                                    <div class="p-2 bg-slate-700 rounded-lg"><i data-lucide="mail" class="w-4 h-4 text-blue-400"></i></div>
+                                    <div><p class="text-[10px] font-bold text-slate-400 uppercase">Email</p><p class="font-bold text-white text-sm truncate w-32" title="${prospect.email}">${prospect.email}</p></div>
+                                </div>
+                            </div>
+                            <div class="bg-blue-900/20 border border-blue-500/20 p-5 rounded-xl relative overflow-hidden">
+                                <div class="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-full blur-3xl"></div>
+                                <h3 class="text-xs font-black text-blue-400 uppercase tracking-widest mb-3 flex items-center relative z-10"><i data-lucide="mic" class="w-4 h-4 mr-2"></i> Transcriptions d'appels (Onoff)</h3>
+                                <p class="text-sm text-slate-300 italic border-l-2 border-blue-500 pl-4 py-1 relative z-10">"${prospect.onoff}"</p>
+                            </div>
+                            <div>
+                                <h3 class="text-xs font-black text-slate-500 uppercase tracking-widest mb-3 border-b border-slate-800 pb-2">Notes & Informations IA</h3>
+                                <p class="text-sm text-slate-300 leading-relaxed bg-slate-800/50 p-4 rounded-xl border border-slate-700">${prospect.notes}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>`;
+                setHTML('modal-container', html);
+            },
+
+            drag(ev, id) { ev.dataTransfer.setData("prospectId", id); },
+            allowDrop(ev) { ev.preventDefault(); },
+            drop(ev, newStatus) {
+                ev.preventDefault();
+                const id = parseInt(ev.dataTransfer.getData("prospectId"));
+                const p = state.prospects.find(x => x.id === id);
+                if(p) p.status = newStatus;
+                app.renderView();
+            },
+
+            renderCRM(container) {
+                const columns = [
+                    { id: 'Nouveau lead', label: 'Nouveaux Leads', color: 'border-blue-500/30 bg-slate-900/40', text: 'text-blue-400' },
+                    { id: 'À rappeler', label: 'En Négociation', color: 'border-amber-500/30 bg-slate-900/40', text: 'text-amber-400' },
+                    { id: 'Qualifié', label: 'Qualifiés (Devis)', color: 'border-cyan-500/30 bg-slate-900/40', text: 'text-cyan-400' },
+                    { id: 'Closer', label: 'Closés (Gagnés)', color: 'border-emerald-500/30 bg-slate-900/40', text: 'text-emerald-400' }
+                ];
+
+                let filtersHTML = '';
+                if (state.crm.showFilters) {
+                    filtersHTML = `
+                    <div class="bg-slate-900/80 backdrop-blur-md p-4 rounded-xl border border-slate-700 shadow-xl flex flex-wrap gap-4 items-end mb-4 animate-in slide-in-from-top-2">
+                        <div class="flex-1 min-w-[150px]">
+                            <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wide mb-1 flex items-center"><i data-lucide="shield" class="w-3 h-3 mr-1 text-emerald-400"></i> Score IA</label>
+                            <select class="w-full p-2.5 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white font-medium outline-none">
+                                <option>Tous les scores</option>
+                            </select>
+                        </div>
+                        <button onclick="app.toggleCRMFilters()" class="px-4 py-2.5 text-xs font-bold text-slate-400 hover:text-white transition-colors uppercase tracking-wider">Fermer</button>
+                    </div>`;
+                }
+
+                let contentHTML = '';
+                if (state.crm.viewMode === 'kanban') {
+                    contentHTML = `
+                    <div class="flex-1 flex space-x-6 overflow-x-auto pb-4 custom-scrollbar hud-enter">
+                        ${columns.map(col => {
+                            const pList = state.prospects.filter(p => p.status === col.id);
+                            const val = pList.reduce((s, c) => s + c.value, 0);
+                            return `
+                            <div class="flex-shrink-0 w-80 bg-slate-900/40 backdrop-blur-md rounded-2xl border ${col.color} shadow-lg flex flex-col h-full overflow-hidden" ondragover="app.allowDrop(event)" ondrop="app.drop(event, '${col.id}')">
+                                <div class="p-4 border-b border-slate-800 bg-slate-800/30">
+                                    <div class="flex justify-between items-center mb-1">
+                                        <h3 class="font-black uppercase tracking-widest text-sm ${col.text}">${col.label}</h3>
+                                        <span class="bg-slate-800 text-slate-300 border border-slate-700 text-xs font-bold px-2 py-0.5 rounded-full">${pList.length}</span>
+                                    </div>
+                                    <p class="text-[10px] font-bold text-slate-500 uppercase">${val.toLocaleString()} € potentiel</p>
+                                </div>
+                                <div class="flex-1 overflow-y-auto p-3 space-y-3 custom-scrollbar">
+                                    ${pList.map(p => `
+                                    <div draggable="true" ondragstart="app.drag(event, ${p.id})" onclick="app.openProspectModal(${p.id})" class="bg-slate-800 p-4 rounded-xl border border-slate-700 shadow-md cursor-grab active:cursor-grabbing hover:border-cyan-500/50 hover:shadow-[0_5px_15px_rgba(34,211,238,0.1)] transition-all relative overflow-hidden">
+                                        <div class="absolute top-0 left-0 w-2 h-2 border-t border-l border-cyan-500/50 rounded-tl pointer-events-none"></div>
+                                        <div class="absolute bottom-0 right-0 w-2 h-2 border-b border-r border-cyan-500/50 rounded-br pointer-events-none"></div>
+                                        <div class="flex justify-between items-start mb-3">
+                                            <div class="flex items-center space-x-3">
+                                                <div class="w-8 h-8 rounded-lg bg-slate-900 text-cyan-400 flex items-center justify-center font-black text-xs border border-slate-700">${p.initial}</div>
+                                                <div>
+                                                    <h4 class="font-bold text-white text-sm leading-tight">${p.company}</h4>
+                                                    <p class="text-[10px] font-bold text-slate-400 uppercase">${p.sector}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="space-y-1.5">
+                                            <p class="text-xs font-medium text-slate-300 flex items-center"><i data-lucide="phone" class="w-3 h-3 mr-2 text-slate-500"></i> ${p.phone}</p>
+                                            <p class="text-xs font-medium text-slate-300 flex items-center truncate"><i data-lucide="mail" class="w-3 h-3 mr-2 text-slate-500"></i> ${p.email}</p>
+                                        </div>
+                                    </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                            `;
+                        }).join('')}
+                    </div>`;
+                } else {
+                    contentHTML = `
+                    <div class="flex-1 bg-slate-900/60 backdrop-blur-2xl rounded-2xl border border-slate-800 shadow-2xl overflow-hidden flex flex-col hud-enter">
+                        <div class="grid grid-cols-6 gap-4 p-4 border-b border-slate-800 bg-slate-800/50 text-xs font-black text-slate-400 uppercase tracking-widest">
+                            <div class="col-span-2">Entreprise & Secteur</div>
+                            <div>Statut</div>
+                            <div>Dernier Contact</div>
+                            <div>Score IA</div>
+                            <div class="text-right">Potentiel CA</div>
+                        </div>
+                        <div class="flex-1 overflow-y-auto divide-y divide-slate-800/50 bg-slate-900/30 custom-scrollbar">
+                            ${state.prospects.map(p => `
+                                <div onclick="app.openProspectModal(${p.id})" class="grid grid-cols-6 gap-4 p-4 items-center hover:bg-slate-800 transition-colors cursor-pointer">
+                                    <div class="col-span-2 flex items-center space-x-4">
+                                        <div class="w-10 h-10 rounded-xl bg-slate-800 border border-slate-700 text-cyan-400 flex items-center justify-center font-black text-sm">${p.initial}</div>
+                                        <div>
+                                            <h4 class="font-bold text-white">${p.company}</h4>
+                                            <p class="text-[10px] font-bold text-slate-400 uppercase">${p.sector}</p>
+                                        </div>
+                                    </div>
+                                    <div><span class="px-3 py-1 bg-slate-800 text-slate-300 border border-slate-700 rounded-lg text-[10px] font-black uppercase tracking-wider">${p.status}</span></div>
+                                    <div><p class="text-xs font-bold text-slate-300">${p.lastContact}</p></div>
+                                    <div><span class="font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded text-xs border border-emerald-500/20">${p.score}/100</span></div>
+                                    <div class="text-right font-black text-cyan-400">${p.value.toLocaleString()} €</div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>`;
+                }
+
+                container.innerHTML = `
+                <div class="h-full flex flex-col space-y-4 relative">
+                    <div class="hud-enter flex justify-between items-end shrink-0">
+                        <div>
+                            <h1 class="text-4xl font-black tracking-tight flex items-center bg-gradient-to-r from-blue-400 to-cyan-300 text-transparent bg-clip-text">
+                                <i data-lucide="target" class="w-8 h-8 mr-3 text-blue-500"></i> PIPELINE CRM
+                            </h1>
+                        </div>
+                        <div class="flex space-x-4 items-center">
+                            <button onclick="app.toggleCRMFilters()" class="px-4 py-2.5 rounded-xl font-bold text-xs tracking-wider uppercase border bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700 flex items-center"><i data-lucide="filter" class="w-4 h-4 mr-2"></i> Filtres</button>
+                            <div class="bg-slate-800 p-1 rounded-xl flex space-x-1 border border-slate-700">
+                                <button onclick="app.setCRMViewMode('kanban')" class="p-2 rounded-lg transition-colors ${state.crm.viewMode==='kanban'?'bg-slate-700 text-cyan-400':'text-slate-500 hover:text-slate-300'}"><i data-lucide="kanban" class="w-5 h-5"></i></button>
+                                <button onclick="app.setCRMViewMode('list')" class="p-2 rounded-lg transition-colors ${state.crm.viewMode==='list'?'bg-slate-700 text-cyan-400':'text-slate-500 hover:text-slate-300'}"><i data-lucide="list" class="w-5 h-5"></i></button>
+                            </div>
+                            <button class="px-6 py-2.5 bg-blue-600 text-white rounded-xl font-bold text-xs tracking-wider uppercase shadow-[0_0_15px_rgba(37,99,235,0.4)] flex items-center"><i data-lucide="plus" class="w-4 h-4 mr-2"></i> Cible</button>
+                        </div>
+                    </div>
+                    ${filtersHTML}
+                    ${contentHTML}
+                </div>`;
+            },
+
+            // --- AGENDA ---
+            renderAgenda(container) {
+                container.innerHTML = `
+                <div class="space-y-6">
+                    <div class="hud-enter">
+                        <h1 class="text-4xl font-black tracking-tight flex items-center bg-gradient-to-r from-blue-400 to-cyan-300 text-transparent bg-clip-text">
+                            <i data-lucide="calendar" class="w-8 h-8 mr-3 text-blue-500"></i> AGENDA & MEETS
+                        </h1>
+                    </div>
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 hud-enter">
+                        <div class="bg-slate-900/60 backdrop-blur-2xl p-6 rounded-2xl border border-slate-800 shadow-2xl">
+                            <h3 class="font-bold text-white mb-6 flex items-center uppercase tracking-widest text-sm"><i data-lucide="plus" class="w-4 h-4 mr-2 text-cyan-400"></i> Nouveau RDV</h3>
+                            <div class="space-y-4">
+                                <div><label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Prospect</label>
+                                <select class="w-full p-3 bg-slate-800 border border-slate-700 rounded-xl text-sm font-medium outline-none text-white">${state.prospects.map(p=>`<option>${p.company}</option>`).join('')}</select></div>
+                                <div class="grid grid-cols-2 gap-3">
+                                    <div><label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Date</label><input type="date" class="w-full p-3 bg-slate-800 border border-slate-700 rounded-xl text-sm text-white"></div>
+                                    <div><label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Heure</label><input type="time" class="w-full p-3 bg-slate-800 border border-slate-700 rounded-xl text-sm text-white"></div>
+                                </div>
+                                <button class="w-full py-3 mt-2 bg-blue-600 text-white font-bold text-xs uppercase tracking-wider rounded-xl hover:bg-blue-500">Ajouter</button>
+                            </div>
+                        </div>
+                        <div class="lg:col-span-2 bg-slate-900/60 backdrop-blur-2xl p-6 rounded-2xl border border-slate-800 shadow-2xl">
+                            <h3 class="font-bold text-white mb-6 flex items-center uppercase tracking-widest text-sm"><i data-lucide="clock" class="w-4 h-4 mr-2 text-cyan-400"></i> À venir</h3>
+                            <div class="space-y-4">
+                                ${state.events.map(ev => `
+                                    <div class="bg-slate-800 p-5 rounded-xl border border-slate-700 flex justify-between items-center">
+                                        <div class="flex items-center space-x-4">
+                                            <div class="bg-slate-900 border border-slate-700 p-3 rounded-lg text-blue-400"><i data-lucide="calendar" class="w-6 h-6"></i></div>
+                                            <div><h4 class="font-bold text-white">${ev.title}</h4><p class="text-xs font-bold text-slate-400 flex items-center mt-1"><i data-lucide="clock" class="w-3 h-3 mr-1 text-cyan-400"></i> ${ev.date} à ${ev.time}</p></div>
+                                        </div>
+                                        <button class="px-4 py-2 bg-slate-700 text-white rounded-lg text-xs font-bold uppercase hover:bg-slate-600">Rejoindre</button>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    </div>
+                </div>`;
+            },
+
+            // --- FACTURATION ---
+            viewInvoice(id) {
+                const doc = state.invoices.find(i => i.id === id);
+                if(!doc) return;
+                const html = `
+                <div class="fixed inset-0 z-50 flex items-center justify-center bg-[#0B0F19]/80 backdrop-blur-sm fade-in" onclick="app.closeModal()">
+                    <div class="bg-slate-900 rounded-2xl shadow-2xl w-[600px] border border-slate-700 overflow-hidden hud-enter" onclick="event.stopPropagation()">
+                        <div class="p-8 border-b border-slate-800">
+                            <div class="flex justify-between items-start mb-6">
+                                <div><h2 class="text-2xl font-black text-white uppercase">${doc.type}</h2><p class="font-mono text-sm text-slate-500">${doc.id}</p></div>
+                                <div class="text-right"><p class="text-xs font-bold text-slate-500 uppercase">Émis le</p><p class="font-bold text-slate-300">${doc.date}</p></div>
+                            </div>
+                            <div class="bg-slate-800/50 p-4 rounded-xl border border-slate-700 mb-6">
+                                <p class="text-[10px] font-bold text-slate-500 uppercase mb-1">Destinataire</p><p class="font-bold text-white text-lg">${doc.client}</p>
+                            </div>
+                            <div class="flex justify-between items-center py-4 border-y border-slate-800">
+                                <span class="font-bold text-slate-400">${doc.details}</span><span class="font-black text-xl text-white">${doc.amount.toLocaleString()} €</span>
+                            </div>
+                        </div>
+                        <div class="p-6 bg-slate-900 flex justify-between items-center">
+                            <button onclick="app.closeModal()" class="px-5 py-2.5 text-xs font-bold text-slate-500 uppercase hover:text-white">Fermer</button>
+                        </div>
+                    </div>
+                </div>`;
+                setHTML('modal-container', html);
+            },
+
+            renderFacturation(container) {
+                container.innerHTML = `
+                <div class="space-y-6 h-full flex flex-col">
+                    <div class="hud-enter flex justify-between items-end">
+                        <div>
+                            <h1 class="text-4xl font-black tracking-tight flex items-center bg-gradient-to-r from-blue-400 to-cyan-300 text-transparent bg-clip-text"><i data-lucide="receipt" class="w-8 h-8 mr-3 text-emerald-500"></i> FACTURATION</h1>
+                        </div>
+                        <button class="px-6 py-3 bg-blue-600 text-white rounded-xl font-bold text-xs tracking-wider uppercase flex items-center"><i data-lucide="plus" class="w-5 h-5 mr-2"></i> Créer Document</button>
+                    </div>
+                    <div class="bg-slate-900/60 backdrop-blur-2xl rounded-2xl border border-slate-800 shadow-2xl overflow-hidden flex flex-col flex-1 hud-enter">
+                        <div class="grid grid-cols-6 gap-4 p-5 border-b border-slate-800 bg-slate-800/50 text-xs font-black text-slate-400 uppercase tracking-widest">
+                            <div>N° Document</div><div>Type</div><div class="col-span-2">Client Cible</div><div>Montant</div><div class="text-right">Action</div>
+                        </div>
+                        <div class="divide-y divide-slate-800/50 flex-1 overflow-y-auto custom-scrollbar">
+                            ${state.invoices.map(inv => `
+                            <div class="grid grid-cols-6 gap-4 p-5 items-center hover:bg-slate-800/80 transition-colors">
+                                <div class="font-mono text-xs font-bold text-slate-400">${inv.id}</div>
+                                <div><span class="px-2 py-1 rounded text-[10px] font-black uppercase border ${inv.type==='Devis'?'bg-blue-500/10 text-blue-400 border-blue-500/20':'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'}">${inv.type}</span></div>
+                                <div class="col-span-2 font-bold text-white">${inv.client}</div>
+                                <div class="font-black text-slate-300">${inv.amount.toLocaleString()} €</div>
+                                <div class="text-right"><button onclick="app.viewInvoice('${inv.id}')" class="px-4 py-2 bg-slate-800 text-slate-300 hover:text-cyan-400 rounded-lg text-xs font-bold uppercase border border-slate-700 flex items-center justify-end w-full"><i data-lucide="eye" class="w-4 h-4 mr-2"></i> Voir</button></div>
+                            </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>`;
+            },
+
+            // --- SESSION CALLING (GAME INTEGRATION) ---
+            gameShowToast(icon, msg) {
+                state.game.toast = { show: true, icon, msg };
+                this.renderView();
+                setTimeout(() => {
+                    state.game.toast.show = false;
+                    this.renderView();
+                }, 2800);
+            },
+
+            gameCheckMilestones(prevCalls, prevRdv) {
+                const s = state.callingStats;
+                [10, 50, 100].forEach(m => { if(prevCalls<m && s.calls>=m) this.gameShowToast('📞', `${m} appels atteints ! 🔥`); });
+                [1, 10, 50].forEach(m => { if(prevRdv<m && s.rdv>=m) this.gameShowToast('🏆', `${m} RDV atteints ! 🔥`); });
+            },
+
+            gameStart() { state.game.view = 'intros'; this.renderView(); },
+            gameHome() { state.game.view = 'home'; this.renderView(); },
+            gameLaunch(idx) {
+                state.game.activeIntro = INTROS[idx];
+                state.game.currentStep = 0;
+                state.game.choiceMade = null;
+                state.game.view = 'call';
+                this.renderView();
+            },
+            gameSelectChoice(idx) {
+                state.game.choiceMade = state.game.activeIntro.steps[state.game.currentStep].choices[idx];
+                this.renderView();
+                setTimeout(() => { const c = $('call-scroll'); if(c) c.scrollTop = c.scrollHeight; }, 50);
+            },
+            gameNext() {
+                if (state.game.currentStep < state.game.activeIntro.steps.length - 1) {
+                    state.game.currentStep++;
+                    state.game.choiceMade = null;
+                    this.renderView();
+                }
+            },
+            gamePrev() {
+                if (state.game.currentStep > 0) {
+                    state.game.currentStep--;
+                    state.game.choiceMade = null;
+                    this.renderView();
+                }
+            },
+            gameEnd(isRdv) {
+                const pCalls = state.callingStats.calls;
+                const pRdv = state.callingStats.rdv;
+                
+                state.callingStats.calls++;
+                if (isRdv) {
+                    state.callingStats.rdv++;
+                    state.callingStats.streak++;
+                    if (state.callingStats.streak > state.callingStats.bestStreak) state.callingStats.bestStreak = state.callingStats.streak;
+                } else {
+                    state.callingStats.streak = 0;
+                }
+                
+                this.gameCheckMilestones(pCalls, pRdv);
+                state.game.view = 'outcome';
+                this.renderView();
+            },
+
+            renderGame(container) {
+                const g = state.game;
+                const s = state.callingStats;
+                const rate = s.calls === 0 ? '—' : Math.round((s.rdv/s.calls)*100)+'%';
+
+                let html = `<div class="h-full w-full bg-[#050505] rounded-2xl border border-slate-800 shadow-2xl overflow-hidden relative flex flex-col font-sans game-wrapper">`;
+                
+                // Toast
+                if (g.toast.show) {
+                    html += `<div class="absolute bottom-8 left-1/2 -translate-x-1/2 bg-slate-900 border border-cyan-500/50 rounded-xl px-6 py-3 flex items-center shadow-2xl z-50 fade-in"><span class="text-xl mr-3">${g.toast.icon}</span><span class="text-sm font-bold text-white whitespace-nowrap">${g.toast.msg}</span></div>`;
+                }
+
+                // Stats Bar (used in intros and call views)
+                const statsBar = `
+                <div class="flex items-center justify-between px-6 py-4 border-b border-slate-800 bg-slate-900/80 shrink-0">
+                    <div class="flex space-x-3">
+                        <div class="flex items-center bg-slate-800 border border-slate-700 rounded-full px-4 py-1.5"><span class="text-cyan-400 mr-2 text-sm">📞</span><span class="text-xs font-bold text-white">${s.calls} appels</span></div>
+                        <div class="flex items-center bg-slate-800 border border-slate-700 rounded-full px-4 py-1.5"><span class="text-emerald-400 mr-2 text-sm">✅</span><span class="text-xs font-bold text-white">${s.rdv} RDV</span></div>
+                        <div class="flex items-center bg-slate-800 border border-slate-700 rounded-full px-4 py-1.5"><span class="text-orange-400 mr-2 text-sm">🔥</span><span class="text-xs font-bold text-white">×${s.streak}</span></div>
+                    </div>
+                </div>`;
+
+                if (g.view === 'home') {
+                    html += `
+                    <div class="flex-1 flex flex-col items-center justify-center p-10 text-center fade-in">
+                        <p class="text-[10px] font-bold tracking-[0.35em] uppercase text-cyan-400 mb-3">Delthom Agency OS</p>
+                        <h1 class="text-6xl font-serif text-white leading-tight mb-4 tracking-tight">Setting<br><em class="text-cyan-400 not-italic">Ultime.</em></h1>
+                        <p class="text-sm text-slate-400 font-light mb-12 max-w-md leading-relaxed">Prompteur interactif. Lis, clique sur sa réponse, rebondis, et verrouille tes RDVs.</p>
+                        <button onclick="app.gameStart()" class="px-8 py-4 bg-gradient-to-r from-cyan-400 to-blue-600 text-white rounded-2xl font-bold text-lg hover:scale-95 transition-transform shadow-[0_0_30px_rgba(34,211,238,0.3)]">📞 Lancer un appel</button>
+                        <div class="flex space-x-4 mt-12 w-full max-w-md">
+                            <div class="flex-1 bg-slate-900 border border-slate-800 rounded-xl p-4 text-center"><div class="text-3xl font-serif text-cyan-400 leading-none">${s.calls}</div><div class="text-[9px] font-bold tracking-[0.2em] uppercase text-slate-500 mt-2">Appels</div></div>
+                            <div class="flex-1 bg-slate-900 border border-slate-800 rounded-xl p-4 text-center"><div class="text-3xl font-serif text-cyan-400 leading-none">${s.rdv}</div><div class="text-[9px] font-bold tracking-[0.2em] uppercase text-slate-500 mt-2">RDV</div></div>
+                            <div class="flex-1 bg-slate-900 border border-slate-800 rounded-xl p-4 text-center"><div class="text-3xl font-serif text-cyan-400 leading-none">${rate}</div><div class="text-[9px] font-bold tracking-[0.2em] uppercase text-slate-500 mt-2">Taux</div></div>
+                        </div>
+                    </div>`;
+                } 
+                else if (g.view === 'intros') {
+                    html += `
+                    <div class="flex-1 flex flex-col fade-in">
+                        ${statsBar}
+                        <div class="px-6 py-5 border-b border-slate-800 flex items-center">
+                            <button onclick="app.gameHome()" class="w-10 h-10 rounded-full bg-slate-900 border border-slate-800 flex items-center justify-center text-white hover:bg-slate-800 mr-4"><i data-lucide="chevron-left" class="w-5 h-5"></i></button>
+                            <div><p class="text-[9px] font-bold tracking-[0.25em] uppercase text-cyan-400 mb-1">Étape 1 sur 2</p><p class="text-base font-bold text-white">Choisis ton Icebreaker</p></div>
+                        </div>
+                        <div class="flex-1 overflow-y-auto p-6 space-y-3 custom-scrollbar">
+                            ${INTROS.map((intro, idx) => `
+                                <div onclick="app.gameLaunch(${idx})" class="p-4 rounded-2xl border flex items-center cursor-pointer transition-all hover:scale-[0.98] ${intro.featured ? 'bg-cyan-500/10 border-cyan-500/30' : 'bg-slate-900 border-slate-800 hover:border-cyan-500/30'}">
+                                    <span class="font-serif text-3xl text-cyan-300 w-12">${intro.num}</span>
+                                    <div class="flex-1"><p class="text-[9px] font-bold tracking-[0.18em] uppercase text-slate-400 mb-1">${intro.tag}</p><p class="text-base font-medium text-white">${intro.name}</p></div>
+                                    <i data-lucide="chevron-right" class="w-6 h-6 text-slate-500"></i>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>`;
+                }
+                else if (g.view === 'call' && g.activeIntro) {
+                    const step = g.activeIntro.steps[g.currentStep];
+                    const isLast = g.currentStep === g.activeIntro.steps.length - 1;
+
+                    html += `
+                    <div class="flex-1 flex flex-col fade-in">
+                        ${statsBar}
+                        <div class="px-6 py-4 border-b border-slate-800 flex items-center bg-slate-900/50">
+                            <button onclick="app.gameStart()" class="w-10 h-10 rounded-full bg-slate-900 border border-slate-800 flex items-center justify-center text-white hover:bg-slate-800 mr-4 shrink-0"><i data-lucide="chevron-left" class="w-5 h-5"></i></button>
+                            <div class="flex-1 min-w-0"><p class="text-[9px] font-bold tracking-[0.25em] uppercase text-cyan-400 mb-1">${step.phase}</p><p class="text-sm text-slate-400 truncate">${g.activeIntro.name}</p></div>
+                        </div>
+                        <div class="px-6 pt-4 pb-2 flex space-x-1 shrink-0">
+                            ${g.activeIntro.steps.map((_, i) => `<div class="flex-1 h-1 rounded-full transition-colors ${i < g.currentStep ? 'bg-cyan-500' : i === g.currentStep ? 'bg-cyan-500/40' : 'bg-slate-800'}"></div>`).join('')}
+                        </div>
+                        
+                        <div class="flex-1 overflow-y-auto p-6 flex flex-col pb-10 custom-scrollbar" id="call-scroll">
+                            <div class="fade-in">
+                                <p class="text-[9px] font-bold tracking-[0.28em] uppercase text-cyan-400 mb-4 flex items-center"><span class="w-4 h-px bg-cyan-400 mr-3"></span>${step.phase}</p>
+                                <div class="font-serif text-[22px] leading-relaxed text-white">${step.text}</div>
+                            </div>
+                            <div class="mt-8 space-y-3 flex flex-col pb-6">
+                                ${!g.choiceMade ? (step.choices ? step.choices.map((c, i) => `
+                                    <button onclick="app.gameSelectChoice(${i})" class="bg-slate-900 border border-slate-800 hover:bg-cyan-500/10 hover:border-cyan-500/30 p-4 rounded-xl text-left text-white text-sm font-medium transition-all flex items-center">
+                                        <span class="text-cyan-400 text-xl mr-3 leading-none mb-1">↳</span> ${c.label}
+                                    </button>
+                                `).join('') : '') : `
+                                    <div class="fade-in">
+                                        <div class="bg-[#0f0f11] border-l-4 border-slate-600 p-4 rounded-r-xl rounded-bl-xl mt-4 text-[15px] text-slate-400 italic">
+                                            <strong class="not-italic text-[10px] font-bold tracking-wider uppercase text-white block mb-2">La réponse du Prospect</strong>${g.choiceMade.prospect}
+                                        </div>
+                                        ${g.choiceMade.reply ? `<div class="bg-[#12141f] border-l-4 border-cyan-400 p-5 rounded-r-xl rounded-bl-xl mt-4 font-serif text-[21px] text-white"><strong class="font-sans text-[10px] font-bold tracking-wider uppercase text-cyan-500 block mb-2">Ton Reframe (À lire)</strong><span>${g.choiceMade.reply}</span></div>` : ''}
+                                    </div>
+                                `}
+                            </div>
+                        </div>
+
+                        <div class="px-6 py-5 border-t border-slate-800 flex gap-3 shrink-0 bg-[#050505]">
+                            ${g.currentStep > 0 ? `<button onclick="app.gamePrev()" class="w-14 bg-slate-900 border border-slate-800 text-slate-400 rounded-xl flex items-center justify-center hover:bg-slate-800"><i data-lucide="chevron-left" class="w-6 h-6"></i></button>` : ''}
+                            
+                            ${(!step.choices || g.choiceMade) ? (
+                                (isLast || step.final) ? `
+                                    <div class="flex-1 flex flex-col space-y-2">
+                                        <button onclick="app.gameEnd(true)" class="w-full py-4 bg-emerald-500 text-white rounded-xl font-bold text-sm hover:bg-emerald-600">✅ RDV pris !</button>
+                                        <button onclick="app.gameEnd(false)" class="w-full py-3 bg-slate-900 border border-slate-800 text-slate-400 rounded-xl font-bold text-sm hover:bg-slate-800">✗ Pas intéressé</button>
+                                    </div>
+                                ` : `<button onclick="app.gameNext()" class="flex-1 bg-gradient-to-r from-cyan-400 to-blue-600 text-white rounded-xl font-bold text-sm shadow-[0_0_15px_rgba(34,211,238,0.2)]">Continuer →</button>`
+                            ) : `<div class="flex-1 flex items-center justify-center text-[13px] text-slate-500 italic">Attente de la réponse du prospect...</div>`}
+                        </div>
+                    </div>`;
+                }
+                else if (g.view === 'outcome') {
+                    html += `
+                    <div class="flex-1 flex flex-col items-center justify-center p-10 text-center fade-in">
+                        <div class="text-7xl mb-6">${s.streak > 0 ? '🏆' : '💪'}</div>
+                        <h2 class="font-serif text-5xl text-white mb-3 leading-tight">${s.streak > 0 ? '<em>RDV</em><br>décroché !' : 'Continue,<br><em>reste en jeu.</em>'}</h2>
+                        <p class="text-sm text-slate-400 font-light mb-8">${s.streak > 0 ? `Série en cours : ${s.streak} RDV consécutif${s.streak>1?'s':''}.` : `Chaque "non" te rapproche du prochain "oui".`}</p>
+                        
+                        <div class="flex space-x-3 w-full max-w-sm mb-10">
+                            <div class="flex-1 bg-cyan-500/10 border border-cyan-500/20 rounded-xl p-4"><div class="font-serif text-3xl text-cyan-400">${s.calls}</div><div class="text-[9px] font-bold tracking-[0.18em] uppercase text-slate-500 mt-2">Appels</div></div>
+                            <div class="flex-1 bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-4"><div class="font-serif text-3xl text-emerald-400">${s.rdv}</div><div class="text-[9px] font-bold tracking-[0.18em] uppercase text-slate-500 mt-2">RDV</div></div>
+                        </div>
+                        <div class="flex flex-col w-full max-w-sm space-y-3">
+                            <button onclick="app.gameStart()" class="w-full py-4 bg-gradient-to-r from-cyan-400 to-blue-600 text-white rounded-xl font-bold text-sm shadow-[0_0_15px_rgba(34,211,238,0.2)]">📞 Prochain appel</button>
+                            <button onclick="app.gameHome()" class="w-full py-4 bg-slate-900 border border-slate-800 text-slate-400 rounded-xl font-bold text-sm hover:bg-slate-800">← Retour accueil</button>
+                        </div>
+                    </div>`;
+                }
+
+                html += `</div>`;
+                container.innerHTML = html;
+            }
+        };
+
+        // Initialize App
+        document.addEventListener('DOMContentLoaded', () => {
+            app.init();
+        });
+    </script>
+</body>
+</html>
